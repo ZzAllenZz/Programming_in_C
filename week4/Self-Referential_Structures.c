@@ -2,9 +2,9 @@
 #include<stdlib.h>
 #include<malloc.h>
 /*
-ÓÃ»§²»¶ÏÊäÈëÊý×Ö 
-³ÌÐò½«ÊäÈëµÄÊý×Ö´ÓÐ¡µ½´óÅÅÐò,²¢ÇÒÄÜ¹»É¾³ý  
-ÌåÏÖµ¥Á´±íµÄÓÅÊÆ 
+ç”¨æˆ·ä¸æ–­è¾“å…¥æ•°å­—
+ç¨‹åºå°†è¾“å…¥çš„æ•°å­—ä»Žå°åˆ°å¤§æŽ’åº,å¹¶ä¸”èƒ½å¤Ÿåˆ é™¤
+ä½“çŽ°å•é“¾è¡¨çš„ä¼˜åŠ¿
 */
 struct Node{
 	int value;
@@ -48,9 +48,9 @@ void addNode(struct Node **head, int value){
 	previous= NULL;
 
 /*
-µ±current²»Ö¸Ïònull&&currentÖÐµÄvalueÐ¡ÓÚinputµÄvalueÊ±£¬ÏòºóÒÆ
-Ö±µ½1.currentÖ¸Ïònull £¨×îºóÒ»¸öÔªËØÁË£©
-or	2.current ÖÐµÄvalue´óÓÚinputÖÐµÄvalueÁË¡£ 
+ï¿½ï¿½currentï¿½ï¿½Ö¸ï¿½ï¿½null&&currentï¿½Ðµï¿½valueÐ¡ï¿½ï¿½inputï¿½ï¿½valueÊ±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+Ö±ï¿½ï¿½1.currentÖ¸ï¿½ï¿½null ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ôªï¿½ï¿½ï¿½Ë£ï¿½
+or	2.current ï¿½Ðµï¿½valueï¿½ï¿½ï¿½ï¿½inputï¿½Ðµï¿½valueï¿½Ë¡ï¿½ 
 */ 
 	while(current != NULL&&current->value<value){
 		previous = current;
