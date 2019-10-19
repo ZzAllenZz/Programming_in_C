@@ -13,15 +13,16 @@ int main(void){
 	struct llist head ={"",NULL},*cp;
 	printf("enter a list of words.\n");
 	cp= &head;
-	for(j=0;j<5;j++){
-		scanf("%s\n\n",cp->word);
+	do{
+
+		j = scanf("%s",cp->word);
 		cp->next = (struct llist *)malloc(sizeof(struct llist));
 		cp = cp->next;
 		cp->next = NULL;
 		strcpy(cp->word,"");
 		cnt++;
-	}
-	printf("%d words:\n",cnt-1);
+	}while(cnt!=5);
+	printf("%d words:\n",cnt);
 	cp = &head;
 	while(strcmp(cp->word,"")){
 		printf("%s\n",cp->word);
