@@ -1,6 +1,6 @@
 #include<stdio.h>
 int main(void){
-	int a[]={10,12,6,7,2};
+	int a[]={10,12,6,7,3};
 	int i;
 	int sum =0;
 	int *p;
