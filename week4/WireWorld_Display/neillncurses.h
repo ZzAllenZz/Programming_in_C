@@ -24,7 +24,7 @@ void Neill_NCURS_Warning(char *s);
 void Neill_NCURS_Events(NCURS_Simplewin *sw);
 void Neill_NCURS_CharStyle(NCURS_Simplewin *sw, char *c, short fg, short bg, int attrs);
 void Neill_NCURS_Done(void);
-void Neill_NCURS_Init(NCURS_Simplewin *sw);/*initialization*/
+void Neill_NCURS_Init(NCURS_Simplewin *sw);
 void Neill_NCURS_PrintArray(char *a, int width, int height, NCURS_Simplewin *sw);
 void Neill_NCURS_PrintSubArray(char *a, int width, int height, int stride, NCURS_Simplewin *sw);
 void Neill_NCURS_PrintLine(char *a, int width, int height,  NCURS_Simplewin *sw);

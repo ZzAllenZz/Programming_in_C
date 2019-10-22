@@ -2,12 +2,16 @@
 #include<stdlib.h>
 #define LEN 40
 void file2array(char *filename,char first_generation[LEN][LEN]);
+
 void next_state(char first_generation[LEN][LEN],char next_generation[LEN][LEN]);
-int surronding_cells(char generation[LEN][LEN],int row,int column) ;
+
+int surronding_cells(char generation[LEN][LEN],int row,int column);
+
+void make_world() 
 int main(int argc,char **argv)
 {
     char first_generation[LEN][LEN];
-    char *filename = "wirewcircuit1.txt";
+    char *filename = "wirewinvalid.txt";
     char next_generation[LEN][LEN];
     int i,j,k,n=0;
 	file2array(filename,first_generation);
@@ -79,8 +83,8 @@ void next_state(char first_generation[LEN][LEN],char next_generation[LEN][LEN])
 					next_generation[i][j]='c';
 				}
 			}else{
-				printf("char error\n");
-				exit(1);
+				printf("A wrong char enters in row %d, column %d\n",i+1,j+1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
