@@ -7,8 +7,9 @@ char *one_round(char *s,char *t);
 void show(char *s,char *t);
 int main(void)
 {
-	char *s="cube";
-	char *t="tons";
+	char *s="wasp";
+	char *t="fish]
+	";
 	show(s,t);
 	return 0;
  } 
@@ -52,15 +53,15 @@ int edit_distance(char *s,char *t)
 	
 	distance=edit_distance(s,t);
 	printf("%s\n",s);
-	
-	temp=one_round(s,t);
-	printf("%s\n",temp);
-
-	for(i=0;i<LEN-2;i++){
-		temp=one_round(temp,t);
-		printf("%s\n",temp);
+	for(i=0;i<distance;i++){
+		if(i==0){
+			temp = one_round(s,t);
+			printf("%s\n",temp);
+		}else{
+			temp=one_round(temp,t);
+			printf("%s\n",temp);
+		}
 	}
- 	printf("%s\n",t);
  	
  };
  
