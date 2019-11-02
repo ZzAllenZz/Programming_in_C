@@ -4,7 +4,6 @@
 #include<ctype.h>
 #include<malloc.h>
 #include<assert.h>
-#define NUMBER 300
 int isogram(char *s);
 void find_longest(char *name); 
 int main(void){
@@ -30,31 +29,30 @@ int isogram(char *s){
 void find_longest(char *name){
 	
 	FILE *fp;
-	char *p[NUMBER];
-	int i,j,n=0,longest=0,flag=0;
+	char longest[50];
+	char p[50];
+	int round=0;
 	fp = fopen(name,"r");
 	if(fp==NULL){
 		printf("failed to open file\n");
 		exit(1);
 	}
 	
-	for(i=0;i<NUMBER;i++){
-		p[i]= (char *)malloc(sizeof(char)*45);
-		for(j=0;j<45;j++){
-			*(p[i]+j)=EOF;
-		}
-		fscanf(fp,"%s",p[i]);
-		if(isogram(p[i])==1){
-			while(p[i][n]!=EOF){
-				n++;
+	while(fscanf(fp,"%s",p)==1){
+
+		if(isogram(p)==1){
+			if(round==0){
+				strcpy(longest,p);
+			}else{
+				if(strlen(p)>strlen(longest)){
+					strcpy(longest,p);
+				}
 			}
-			if(n>longest){
-				longest=n;
-				flag=i;
-			}
-			n=0;
-		}
+			round++;
+
+		}	
 	}
-	printf("%s(%d)\n",p[flag],longest);
+
+	printf("%s(%d)\n",longest,strlen(longest));
 }
 
