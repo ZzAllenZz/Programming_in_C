@@ -20,9 +20,11 @@ int linkcompare(Node *head);
 
 int main(int argv,char **argc)
 {
-	char *start="cat",*end="dog";
+	char *start="wasp",*end="fish";
 	
     int diff=countdiff(start,end);
+    
+    printf("the diff between %s and %s is %d\n",start,end,diff);
     
     Node *head=create(start,end);
     
@@ -95,7 +97,7 @@ void printlink(Node *head)
 
 int countdiff(char *a,char *b)
 {
-    	int i,diff=1;
+    	int i,diff=0;
     	for(i=0;i<strlen(a);i++)
     	{
         	if(*(a+i)!=*(b+i))
@@ -114,10 +116,10 @@ void wordladders(char *start,char *end,Node *head,int lenth)
     	{
         	printlink(head);
     	}
-    	while(!(feof(fp))&&lenth>1) //当两个string的diff>=2; 
+    	while(!(feof(fp))) // 
     	{
     		fscanf(fp,"%s",temp);
-        	if(compare(start,temp) && notin(temp,head)&&lenth>2)//当start和temp的diff==1并且temp不在链表里并且start和end的diff要>=3; 
+        	if(compare(start,temp) && notin(temp,head)&&lenth>1)//当start和temp的diff==1并且temp不在链表里并且start和end的diff要>=2; 
         	{
             		head=insert(head,temp);
             		wordladders(temp,end,head,lenth-1);
