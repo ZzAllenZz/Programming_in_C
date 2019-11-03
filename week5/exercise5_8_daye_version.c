@@ -20,7 +20,7 @@ int linkcompare(Node *head);
 
 int main(int argv,char **argc)
 {
-	char *start="wasp",*end="fish";
+	char *start="cat",*end="dog";
 	
     int diff=countdiff(start,end);
     
