@@ -74,25 +74,24 @@ void fulfill(int array[SIZE][SIZE],Co lo, int size){
 	so it present the center of current squares.
 	so we need to asign ' ' to matched array. 
 	*/
-	
-	for(i=0;i<9;i++){
-		if(i==4){
-			for(j=0;j<(size)/3;j++){
-				for(k=0;k<(size)/3;k++){
-					array[lo.x+j][lo.y+k] = ' ';
-					continue;/*not necessray~*/
-				}
+	for(j=0;j<(size)/3;j++){
+		for(k=0;k<(size)/3;k++){
+			array[lo.x+j][lo.y+k] = ' ';
 			}
-		}
+    }
+	for(i=0;i<9;i++){
+		if(i!=4){
+		
 		/*find the center of subsquares and use the top-left one to represent it. */
 		newlo.y=lo.y+Y[i]*size/3+size/9;  
 		newlo.x=lo.x+X[i]*size/3+size/9;
 		fulfill(array,newlo,size/3);
+		}
 	}	
 	/*
 	recursion is useful because:
 	everytime, when we find a new subsquare(call the fulfill function), we repeated the same step:
 	divided into 9 parts, and print the centred one;
 	*/
-	
 }
+

@@ -11,12 +11,16 @@ void fulfill(int array[SIZE][SIZE],Co lo,int size);
 
 int main(void){
 	int array[SIZE][SIZE]; 
+	int i,j;
 	Co lo;
-	/*
-	use top-left corner to present the center of squares
-	*/
-	lo.y=SIZE/3;//: 81/3 = 27;
-	lo.x=SIZE/3;//: 81/3 = 27;
+
+	lo.y=SIZE-1;
+	lo.x=1;
+	for(i=0;i<1;i++){
+		for(j=0;j<1;j++){
+			a
+		}
+	}
 	initialize_array(array);
 	printf("initial pattern:\n");
 	print_array(array);
@@ -52,43 +56,25 @@ void fulfill(int array[SIZE][SIZE],Co lo, int size){
 
 	int i,j,k;
 	Co newlo;
-	/*!!!
-	Y[9] and X[9] need to be matched, and used in loop.
-	|
-	|
-	|
-	---->
-	*/
-	int Y[9] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
-	int X[9] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
 
-	if(size==1){
+
+	if(size>SIZE){
 		return;
 	}
 
-	
-	/*when i = 4, X[4],Y[4] = 0,
-	so it present the center of current squares.
-	so we need to asign ' ' to matched array. 
-	*/
 	for(i=0;i<9;i++){
 		if(i==4){
 			for(j=0;j<(size)/3;j++){
 				for(k=0;k<(size)/3;k++){
 					array[lo.x+j][lo.y+k] = ' ';
-					continue;/*not necessray~*/
+					continue;
 				}
 			}
 		}
-		/*find the center of subsquares and use the top-left one to represent it. */
 		newlo.y=lo.y+Y[i]*size/3+size/9;  
 		newlo.x=lo.x+X[i]*size/3+size/9;
 		fulfill(array,newlo,size/3);
 	}	
-	/*
-	recursion is useful because:
-	everytime, when we find a new subsquare(call the fulfill function), we repeated the same step:
-	divided into 9 parts, and print the centred one;
-	*/
+
 	
 }
