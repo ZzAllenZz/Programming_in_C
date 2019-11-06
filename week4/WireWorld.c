@@ -7,9 +7,8 @@ void next_state(char first_generation[LEN][LEN],char next_generation[LEN][LEN]);
 
 int surronding_cells(char generation[LEN][LEN],int row,int column);
 
-void make_world() 
-int main(int argc,char **argv)
-{
+void make_world() ;
+int main(int argc,char **argv){
     char first_generation[LEN][LEN];
     char *filename = "wirewinvalid.txt";
     char next_generation[LEN][LEN];

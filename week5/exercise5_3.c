@@ -5,7 +5,7 @@
 #define NUMBER 2891
 #define WIDTH 8
 int find_matching_prime(char a);
-void find_word();
+//void find_word();
 void find_result(char *lword);
 
 int main (void){

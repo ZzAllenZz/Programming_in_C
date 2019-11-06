@@ -7,8 +7,8 @@ char *one_round(char *s,char *t);
 void show(char *s,char *t);
 int main(void)
 {
-	char *s="cube";
-	char *t="tons";
+	char *s="cold";
+	char *t="warm";
 	show(s,t);
 	return 0;
  } 

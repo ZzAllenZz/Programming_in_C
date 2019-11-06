@@ -1,183 +1,96 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include<stdio.h>
+#define SIZE 81
+/*
+ require: log3(SIZE) must be a integer!;
+*/
+typedef struct coordinate{
+    int y;
+    int x;
+} Co;
+void initialize_array(int array[SIZE][SIZE]);
+void print_array(int array[SIZE][SIZE]);
+void fulfill(int array[SIZE][SIZE],Co lo,int size);
 
-typedef struct node
-{
-    char *word;
-    struct node *next;
-}Node;
+int main(void){
+    int array[SIZE][SIZE];
+    Co lo;
+    /*
+    use top-left corner to present the center of squares
+    */
+    lo.y=SIZE/3;//: 81/3 = 27;
+    lo.x=SIZE/3;//: 81/3 = 27;
+    initialize_array(array);
+    printf("initial pattern:\n");
+    print_array(array);
+    printf("Sierpinski Carpet Pattern:\n");
+    fulfill(array,lo,SIZE);
+    print_array(array);
 
-int compare(char *a,char *b);
-int countdiff(char *a,char *b);
-void wordladders(char *start,char *end,Node *head,int lenth);
-int notin(char *temp, Node *head);
-Node *create(char *start, char *end);
-Node *insert(Node *head,char *word);
-Node *del(Node *head,char *word);
-void printlink(Node *head);
-int linkcompare(Node *head);
-
-int main(int argv,char **argc)
-{
-    char *start="cat",*end="dog";
-
-    int diff=countdiff(start,end);
-
-    Node *head=create(start,end);
-
-    wordladders(start,end,head,diff);
-
-
-    return 0;
 }
 
-Node *create(char *start, char *end)
-{
-    Node *head=(Node *)malloc(sizeof(Node));
-    Node *p=(Node *)malloc(sizeof(Node));
-    head->word=(char *)malloc(sizeof(char)*strlen(start));
-    head->word=start;
-    p->word=(char *)malloc(sizeof(char)*strlen(end));
-    p->word=end;
-    head->next=p;
-    p->next=NULL;
-    return head;
-}
-
-Node *insert(Node *head,char *word)
-{
-    Node *p,*current=head;
-    Node *new=(Node *)malloc(sizeof(Node));
-    new->word=(char *)malloc(sizeof(char)*strlen(word));
-    while (current->next->next!=NULL)
-    {
-        current=current->next;
-    }
-    p=current->next;
-    new->word=word;
-    current->next=new;
-    new->next=p;
-    return head;
-}
-
-Node *del(Node *head,char *word)
-{
-    Node *p=head,*current=head;
-    while (strcmp(p->word,word))
-    {
-        current=p;
-        p=p->next;
-    }
-    current->next=p->next;
-    free(p);
-    return head;
-}
-
-void printlink(Node *head)
-{
-    int i;
-    Node *p=head;
-    do
-    {
-        for(i=0;i<strlen(p->word);i++)
-        {
-            printf("%c",p->word[i]);
-        }
-        if(p->next!=NULL)
-        {
-            printf(" -> ");
-        }
-        p=p->next;
-    }while (p!=NULL);
-    printf("\n");
-}
-
-int countdiff(char *a,char *b)
-{
-    int i,diff=1;
-    for(i=0;i<strlen(a);i++)
-    {
-        if(*(a+i)!=*(b+i))
-        {
-            diff++;
+void initialize_array(int array[SIZE][SIZE]){
+    int i,j;
+    for(i=0;i<SIZE;i++){
+        for(j=0;j<SIZE;j++){
+            array[i][j] = '#';
         }
     }
-    return diff;
+    return ;
 }
 
-void wordladders(char *start,char *end,Node *head,int lenth)
-{
-    FILE *fp=fopen("34words.txt","r");
-    char *temp=(char *)malloc(sizeof(char)*strlen(start));
-    if(linkcompare(head))//两两string之间的diff都等于1时
-    {
-        printlink(head);
-    }
-    while(!(feof(fp))&&lenth>1) //当两个string的diff>=2;
-    {
-        fscanf(fp,"%s",temp);
-        if(compare(start,temp) && notin(temp,head)&&lenth>2)//当start和temp的diff==1并且temp不在链表里并且start和end的diff要>=3;
-        {
-            head=insert(head,temp);
-            wordladders(temp,end,head,lenth-1);
-            head=del(head,temp);
+void print_array(int array[SIZE][SIZE]){
+    int i,j,k;
+    for(i=0;i<SIZE;i++){
+        for(j=0;j<SIZE;j++){
+            printf("%c",array[i][j]);
         }
-
+        printf("\n");
     }
-    fclose(fp);
+    return ;
 }
 
-int linkcompare(Node *head) //如果这个链表是合法的，返回1；如果这个链表是不合法的，返回0；
-{
-    Node *p=head;
-    int diff=0;
-    if(p->next->next==NULL)//如果链表中只有两个元素，那肯定是不合法的，无意义。
-    {
-        return 0;
-    }
-    while(p->next!=NULL)
-    {
-        if(!compare(p->word,p->next->word))//比较p->word和p->next->word，如果diff不是1，那个要返回0；
-        {
-            return 0;
-        }
-        p=p->next;
-    }
-    return 1;
-}
 
-int compare(char *a,char *b) //diff==1时返回1；其他情况返回0；
-{
-    int i,diff=0;
-    if(strlen(a)!=strlen(b))
-    {
-        return 0;
+void fulfill(int array[SIZE][SIZE],Co lo, int size){
+
+    int i,j,k;
+    Co newlo;
+    /*!!!
+    Y[9] and X[9] need to be matched, and used in loop.
+    |
+    |
+    |
+    ---->
+    */
+    int Y[9] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
+    int X[9] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
+
+    if(size==1){
+        return;
     }
-    for(i=0;i<strlen(a);i++)
-    {
-        if(*(a+i)!=*(b+i))
-        {
-            diff++;
-            if(diff>1)
-            {
-                return 0;
+
+
+    /*when i = 4, X[4],Y[4] = 0,
+    so it present the center of current squares.
+    so we need to asign ' ' to matched array.
+    */
+    for(i=0;i<9;i++){
+        if(i==4){
+            for(j=0;j<(size)/3;j++){
+                for(k=0;k<(size)/3;k++){
+                    array[lo.x+j][lo.y+k] = ' ';
+                    continue;/*not necessray~*/
+                }
             }
         }
+        /*find the center of subsquares and use the top-left one to represent it. */
+        newlo.y=lo.y+Y[i]*size/3+size/9;
+        newlo.x=lo.x+X[i]*size/3+size/9;
+        fulfill(array,newlo,size/3);
     }
-    return (diff==1)?1:0;
-}
+    /*
+    recursion is useful because:
+    everytime, when we find a new subsquare(call the fulfill function), we repeated the same step:
+    divided into 9 parts, and print the centred one;
+    */
 
-int notin(char *temp, Node *head)//比较temp是否在链表中出现过，如果出现过，return 0；没出现过，return 1 ；
-{
-    Node *p=head;
-    while (p!=NULL)
-    {
-        if(!strcmp(p->word,temp))
-        {
-            return 0;
-        }
-        p=p->next;
-    }
-    return 1;
 }
