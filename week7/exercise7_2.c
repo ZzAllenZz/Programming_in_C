@@ -33,7 +33,7 @@ void find_parent(Queue *q, Node t);
 int main (void)
 {
     test();
-    show_result("51327648 ");
+    show_result("513276 48");
     return 0;
 }
 void test()
