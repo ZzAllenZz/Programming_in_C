@@ -3,46 +3,31 @@
 #include<assert.h>
 
 
-#define NUMBOARDS 362880
 #define SIZE 3
 
 typedef struct node{
     char board[SIZE][SIZE];
-    int parent ;
+    struct node *parent ;
+    struct node *next;
 } Node;
 
 typedef struct queue{
-    Node n[NUMBOARDS];
-    int front;
-    int back;
+    Node *front;
+    Node *back;
 } Queue;
 
-/*Initialise the first node*/
-void initialise_node(Node *t,char *p);
-/*Initialise the queue*/
 void initialise_queue(Queue *q);
-/*Add one more node into queue*/
+void initialise_node(Node *t,char *p);
 void insert(Node *t, Queue *q);
-/*Move the front */
 void move(Queue *q);
-/*Check whether the queue is empty*/
 int is_empty_queue(Queue *q);
-
-/*Used to find ' ' in board */
 int is_empty(char c);
-/*Search whether the new node is existed in queue */
-int search_exist(Queue *q, Node new_one);
-/*Used to compare new one with target board */
-int match_target(Node new_one);
-/*Used to find and insert the next several boards from one parent*/
-void find_next_board(Queue *q);
-/*Used to print board(2D char array)*/
-void print_board(Node t);
-/*a recursion used to print out route*/
-void find_parent(Queue *q, Node t);
-/*Used to show the core logic and present the solution  */
 void show_solution(char *p);
-void test();
+void find_next_board(Queue *q);
+int search_exist(Queue q, Node new_one);
+int match_target(Node new_one);
+void find_parent(Queue q, Node t);
+void print_board(Node t);
 
 int main (void)
 {
@@ -50,32 +35,37 @@ int main (void)
     show_solution("51327648 ");
     return 0;
 }
-void test()
+
+
+void initialise_queue(Queue *q)
 {
-    static Queue q;
-    Node *t;
-    t = (Node *)malloc(sizeof(Node));
-    initialise_queue(&q);
-    initialise_node(t,"513276 48");
-
-    insert(t,&q);
-    assert(q.n[0].board[1][1]=='7');
-    assert(q.n[0].board[2][2]=='8');
-    assert(q.n[0].board[0][1]=='1');
-    t->board[0][0]='1';
-    t->board[0][1]='2';
-    t->board[0][2]='3';
-    t->board[1][0]='4';
-    t->board[1][1]='5';
-    t->board[1][2]='6';
-    t->board[2][0]='7';
-    t->board[2][1]='8';
-    t->board[2][2]=' ';
-    assert(match_target(*t)==1);
-
+    /*front and back point to head node;
+     * head node has no meaning, but just for convenient operation;
+     */
+    q->front = q->back = (Node *)malloc(sizeof(Node));
+    if(!q->front){
+        printf("Failed to allocation...\n");
+        exit(EXIT_FAILURE);
+    }
+    q->front->next = NULL;
 }
-void show_solution(char *p){
-    static Queue q;
+
+void initialise_node(Node *t,char *p)
+{
+    int i,j;
+    for(i=0;i<SIZE;i++){
+        for(j=0;j<SIZE;j++){
+            t->board[i][j]= *p;
+            p++;
+        }
+    }
+    t->parent =NULL;
+    t->next = NULL;
+}
+
+void show_solution(char *p)
+{
+    Queue q;
     Node t;
 
     initialise_node(&t,p);
@@ -97,6 +87,7 @@ void show_solution(char *p){
     find_parent(&q,q.n[q.back-1]);
 }
 
+
 void find_next_board(Queue *q)
 {
     int i,j,k,l,m;
@@ -107,24 +98,25 @@ void find_next_board(Queue *q)
     /*Initialise new_node*/
     for(i=0;i<SIZE;i++) {
         for(j=0;j<SIZE;j++) {
-            new_node.board[i][j]=q->n[q->front].board[i][j];
+            new_node.board[i][j]=q->front->board[i][j];
         }
     }
     /*-1 has no meaning*/
     new_node.parent = -1;
+    new_node.next= NULL;
 
     for(i=0;i<SIZE;i++){
         for(j=0;j<SIZE;j++){
-            if(is_empty(q->n[q->front].board[i][j])){
+            if(is_empty(q->front->board[i][j])){
                 for(k=0;k<4;k++){
                     /*Ensure the swap is not out of boundary*/
                     if((i+y[k])<=2&&(i+y[k])>=0&&(j+x[k])<=2&&(j+x[k])>=0){
 
-                        new_node.board[i][j]= q->n[q->front].board[i+y[k]][j+x[k]];
-                        new_node.board[i+y[k]][j+x[k]] = q->n[q->front].board[i][j];
+                        new_node.board[i][j]= q->front->board[i+y[k]][j+x[k]];
+                        new_node.board[i+y[k]][j+x[k]] = q->front->board[i][j];
                         /*Ensure new_node is not existed in queue*/
-                        if(!search_exist(q,new_node)){
-                            new_node.parent = q->front+1;
+                        if(!search_exist(*q,new_node)){
+                            new_node.parent = q->front;
                             insert(&new_node,q);
                         }
                         /*If the new_node's board is target board, return;
@@ -153,35 +145,29 @@ void find_next_board(Queue *q)
 
 }
 
-void initialise_node(Node *t,char *p)
-{
-    int i,j;
-    for(i=0;i<SIZE;i++){
-        for(j=0;j<SIZE;j++){
-            t->board[i][j]= *p;
-            p++;
-        }
-    }
-    t->parent =0;
-}
-void initialise_queue(Queue *q)
-{
-    q->front = 0;
-    q->back = 0;
-}
 void insert(Node *t, Queue *q)
 {
-    q->n[q->back]= *t;
-    q->back = q->back+1;
+    q->back->next = t;
+    q->back = t;
 }
 
-void move(Queue *q) {
-    q->front=(q->front+1);
+void move(Queue *q)
+{
+    if(q->front==q->back){
+        return;
+    }
+    if(q->front->next->next ==NULL){
+        q->front->next = NULL;
+        q->back = q->front;
+    }else{
+        q->front->next = q->front->next->next;
+    }
+
+
 }
 
-
-
-int is_empty_queue(Queue *q){
+int is_empty_queue(Queue *q)
+{
     if(q->front ==q->back){
         return 1;
     }else{
@@ -198,14 +184,15 @@ int is_empty(char c){
 }
 
 
-int search_exist(Queue *q, Node new_one)
+int search_exist(Queue q, Node new_one)
 {
     int i,j,k;
     int count=0;
-    for(k=0;k<q->back;k++){
+
+    while(q.front->next !=NULL){
         for(i=0;i<SIZE;i++){
             for(j=0;j<SIZE;j++){
-                if(new_one.board[i][j]==q->n[k].board[i][j]){
+                if(new_one.board[i][j]==q.front->next->board[i][j]){
                     count++;
                 }
             }
@@ -215,12 +202,12 @@ int search_exist(Queue *q, Node new_one)
         }
         count = 0;
     }
-
     return 0;
 
 }
 
-int match_target(Node new_one){
+int match_target(Node new_one)
+{
     int i,j;
     int count=0;
     /*int 49 means char '1'*/
@@ -242,14 +229,15 @@ int match_target(Node new_one){
     }
 
 }
-void find_parent(Queue *q, Node t)
+
+void find_parent(Queue q, Node t)
 {
     int i;
     if(t.parent==0){
         print_board(t);
         return;
     }
-    for(i=q->back-1;i>=0;i--){
+    wihle(q.front !=NULL){
         if(t.parent==i+1){
             find_parent(q,q->n[i]);
             print_board(t);

@@ -57,6 +57,9 @@ void test()
     t = (Node *)malloc(sizeof(Node));
     initialise_queue(&q);
     initialise_node(t,"513276 48");
+    /*测试 12345678 ' '
+     *测试 not have a solution
+     * */
 
     insert(t,&q);
     assert(q.n[0].board[1][1]=='7');
