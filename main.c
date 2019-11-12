@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<assert.h>
+#include<time.h>
 
 #define SIZE 3
 
@@ -44,7 +45,14 @@ void show_solution(char *p);
 int main (void)
 {
 //    test();
-    show_solution("513276 48");
+    clock_t start,finish;
+    double duration;
+    start = clock();
+    printf("start:\n");
+    show_solution("87 216345");
+    finish = clock();
+    duration = (finish - start)/CLOCKS_PER_SEC;
+    printf("duration : %f",duration);
     return 0;
 }
 
