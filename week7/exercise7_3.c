@@ -1,9 +1,18 @@
+/*Note: 
+*1.The code is based on 74.c, so it is a BFS Algorithm achieved by Linked-list Queue;
+*2.The font filename must be "Mode7.fnt", 
+*  otherwise we need to change fname in function:Neill_SDL_ReadFont;
+*3.After the SDL Window draw all the pattern, it will close automatically;
+*  But you cannot close it during displaying(not suggest to do that!);
+*/
+
 #include<stdio.h>
 #include<stdlib.h>
-#include<string.h>
-#define NDEBUG
 #include<assert.h>
+#include<string.h>
+#include "neillsdl2.h"
 
+#define MILLISECONDDELAY 1000
 #define SIZE 3
 #define TRUE 1
 #define FALSE 0
@@ -41,16 +50,17 @@ bool match_target(Node new_one);
 
 /*Used to copy board from origin's node to destination's node*/
 void copy_board(Node *destination, Node origin);
-/*a recursion used to print out route*/
-void find_parent(Queue q, Node t);
-/*Used to print board(2D char array)*/
-void print_board(Node t);
 /*Used to find and insert the next several boards from one parent*/
 void find_next_board(Queue *q,Node *const_ptr);
-
 /*Used to show the core logic and present the solution  */
 void show_solution(char *p);
-void test();
+/*The core function to display solution on SDL Window */
+
+void sdl_display(Queue q);
+/*Used to draw board on SDL Simple_Window*/
+void draw_board(Node t,SDL_Simplewin *sw);
+/*a recursion used to draw out route*/
+void find_parent(Queue q, Node t, SDL_Simplewin *sw);
 
 int main (int argc, char **argv)
 {
@@ -58,47 +68,12 @@ int main (int argc, char **argv)
         printf("ERROR: Incorrect usage, try e.g. %s \"513276 48\"\n",argv[0]);
         exit(EXIT_FAILURE);
     }else{
-        test();
         show_solution(argv[1]);
     }
 
     return 0;
 }
-void test()
-{
-    static Queue q;
-    Node *t;
-    Node *const_ptr;
-    t = (Node *)malloc(sizeof(Node));
 
-    initialise_queue(&q);
-    assert(is_empty_queue(&q)==1);
-
-    initialise_node(t,"513276 48");
-    insert(t,&q);
-    const_ptr = q.front->next;
-    assert(q.front->next->board[1][1]=='7');
-    assert(q.front->next->board[2][2]=='8');
-    assert(q.front->next->board[2][0]==' ');
-
-    find_next_board(&q,const_ptr);
-    assert(q.front->next->board[1][0]==' ');
-    assert(q.front->next->board[2][0]=='2');
-    assert(q.front->next->next->board[2][1]==' ');
-    assert(q.front->next->next->board[2][0]=='4');
-    assert(is_empty(q.front->next->board[1][0])==1);
-    t->board[0][0]='1';
-    t->board[0][1]='2';
-    t->board[0][2]='3';
-    t->board[1][0]='4';
-    t->board[1][1]='5';
-    t->board[1][2]='6';
-    t->board[2][0]='7';
-    t->board[2][1]='8';
-    t->board[2][2]=' ';
-    assert(match_target(*t)==1);
-
-}
 void show_solution(char *p)
 {
     Queue q;
@@ -109,7 +84,6 @@ void show_solution(char *p)
      * const_ptr is used to find out the whole linked list,
      * no matter how the queue is changed;
      * */
-
     initialise_node(&t,p);
     initialise_queue(&q);
     insert(&t,&q);
@@ -118,7 +92,6 @@ void show_solution(char *p)
 
     while(!match_target(*(q.back))&&!is_empty_queue(&q)){
         find_next_board(&q,const_ptr);
-
     }
 
     /*If q is empty, it means cannot find a solution
@@ -127,9 +100,69 @@ void show_solution(char *p)
         printf("Cannot find the solution");
         return;
     }
-    /*A recursion used to print out the route */
-    find_parent(q,*(q.back));
+    /*Display route on SDL Window */
+    sdl_display(q);
+    
 }
+
+void sdl_display(Queue q)
+{
+
+    SDL_Simplewin sw;
+
+    /*initialise SDL Window*/
+    Neill_SDL_Init(&sw);
+
+    /*A recursion used to draw out route*/
+    find_parent(q,*(q.back),&sw);
+    
+    /*After showing the route, we close Window*/
+    SDL_Quit();
+    atexit(SDL_Quit);
+}
+
+void find_parent(Queue q, Node t,SDL_Simplewin *sw)
+{
+
+    if(t.parent==NULL){
+        draw_board(t,sw);
+        return;
+    }
+
+    find_parent(q, *(t.parent),sw);
+    draw_board(t,sw);
+    return;
+}
+
+void draw_board(Node t,SDL_Simplewin *sw)
+{
+    int i,j;
+    int ox = WWIDTH/2;
+    int oy = WHEIGHT/2;
+    fntrow fontdata[FNTCHARS][FNTHEIGHT];
+    
+    Neill_SDL_ReadFont(fontdata, "mode7.fnt");
+
+
+    for(i=0;i<SIZE;i++){
+        for(j=0;j<SIZE;j++){
+            Neill_SDL_DrawChar(sw,fontdata,t.board[i][j], ox+j*FNTWIDTH, oy+i*FNTHEIGHT);
+        }
+        
+    }
+    Neill_SDL_Events(sw);
+    if(sw->finished){
+        SDL_Quit();
+        atexit(SDL_Quit);
+        exit(EXIT_SUCCESS);
+    }
+
+    Neill_SDL_UpdateScreen(sw);
+    SDL_Delay(MILLISECONDDELAY);
+   
+}
+
+
 
 void find_next_board(Queue *q,Node *const_ptr)
 {
@@ -183,7 +216,7 @@ void find_next_board(Queue *q,Node *const_ptr)
 
 }
 
-int search_exist(Node *const_ptr, Node new_one)
+bool search_exist(Node *const_ptr, Node new_one)
 {
     int i,j;
     int count=0;
@@ -200,51 +233,24 @@ int search_exist(Node *const_ptr, Node new_one)
             }
         }
         if(count==SIZE*SIZE){
-            return 1;
+            return TRUE;
         }
         count = 0;
         p = p->next;
     }
-    return 0;
-
-}
-
-void find_parent(Queue q, Node t)
-{
-    if(t.parent==NULL){
-        print_board(t);
-        return;
-    }
-
-    find_parent(q, *(t.parent));
-    print_board(t);
-    return;
-
+    return FALSE;
 
 }
 
 
-void copy_board(Node *destination, Node origin)
-{
-   int i,j;
+void copy_board(Node *destination, Node origin){
+    int i,j;
     for(i=0;i<SIZE;i++){
         for(j=0;j<SIZE;j++){
             destination->board[i][j]= origin.board[i][j];
         }
     }
 }
-void print_board(Node t)
-{
-    int i,j;
-    for(i=0;i<SIZE;i++){
-        for(j=0;j<SIZE;j++){
-            printf("%c",t.board[i][j]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
-
 void initialise_queue(Queue *q)
 {
     /*Both front and back, point to a head node;
@@ -305,27 +311,27 @@ void move(Queue *q)
 
 }
 
-int is_empty_queue(Queue *q)
+bool is_empty_queue(Queue *q)
 {
     if(q->front ==q->back){
-        return 1;
+        return TRUE;
     }else{
-        return 0;
+        return FALSE;
     }
 
 }
-int is_empty(char c)
+bool is_empty(char c)
 {
     if(c==' '){
-        return 1;
+        return TRUE;
     }else{
-        return 0;
+        return FALSE;
     }
 }
 
 
 
-int match_target(Node new_one)
+bool match_target(Node new_one)
 {
     int i,j;
     int count=0;
@@ -342,9 +348,9 @@ int match_target(Node new_one)
         }
     }
     if(count==8){
-        return 1;
+        return TRUE;
     }else{
-        return 0;
+        return FALSE;
     }
 
 }

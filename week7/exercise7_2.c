@@ -1,10 +1,15 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
+#define NDEBUG
 #include<assert.h>
-
 
 #define NUMBOARDS 362880
 #define SIZE 3
+#define TRUE 1
+#define FALSE 0
+
+typedef int bool;
 
 typedef struct node{
     char board[SIZE][SIZE];
@@ -25,29 +30,39 @@ void initialise_queue(Queue *q);
 void insert(Node *t, Queue *q);
 /*Move the front */
 void move(Queue *q);
-/*Check whether the queue is empty*/
-int is_empty_queue(Queue *q);
 
+/*Check whether the queue is empty*/
+bool is_empty_queue(Queue *q);
 /*Used to find ' ' in board */
-int is_empty(char c);
+bool is_empty(char c);
 /*Search whether the new node is existed in queue */
-int search_exist(Queue *q, Node new_one);
+bool search_exist(Queue *q, Node new_one);
 /*Used to compare new one with target board */
-int match_target(Node new_one);
-/*Used to find and insert the next several boards from one parent*/
-void find_next_board(Queue *q);
+bool match_target(Node new_one);
+
+/*Used to copy board from origin's node to destination's node*/
+void copy_board(Node *destination, Node origin);
 /*Used to print board(2D char array)*/
 void print_board(Node t);
 /*a recursion used to print out route*/
 void find_parent(Queue *q, Node t);
+/*Used to find and insert the next several boards from one parent*/
+void find_next_board(Queue *q);
+
 /*Used to show the core logic and present the solution  */
 void show_solution(char *p);
 void test();
 
-int main (void)
+int main (int argc, char **argv)
 {
-    test();
-    show_solution("51327648 ");
+    if(argc != 2 || strlen(argv[1])!=9 ){
+        printf("ERROR: Incorrect usage, try e.g. %s \"513276 48\"\n",argv[0]);
+        exit(EXIT_FAILURE);
+    }else{
+        test();
+        show_solution(argv[1]);
+    }
+
     return 0;
 }
 void test()
@@ -55,16 +70,23 @@ void test()
     static Queue q;
     Node *t;
     t = (Node *)malloc(sizeof(Node));
-    initialise_queue(&q);
-    initialise_node(t,"513276 48");
-    /*测试 12345678 ' '
-     *测试 not have a solution
-     * */
 
+    initialise_queue(&q);
+    assert(is_empty_queue(&q)==1);
+
+    initialise_node(t,"513276 48");
     insert(t,&q);
+    
     assert(q.n[0].board[1][1]=='7');
     assert(q.n[0].board[2][2]=='8');
-    assert(q.n[0].board[0][1]=='1');
+    assert(q.n[0].board[2][0]==' ');
+
+    find_next_board(&q);
+    assert(q.n[1].board[1][0]==' ');
+    assert(q.n[1].board[2][0]=='2');
+    assert(q.n[2].board[2][1]==' ');
+    assert(q.n[2].board[2][0]=='4');
+    assert(is_empty(q.n[1].board[1][0])==1);
     t->board[0][0]='1';
     t->board[0][1]='2';
     t->board[0][2]='3';
@@ -78,6 +100,7 @@ void test()
 
 }
 void show_solution(char *p){
+
     static Queue q;
     Node t;
 
@@ -85,15 +108,15 @@ void show_solution(char *p){
     initialise_queue(&q);
     insert(&t,&q);
 
+    /*jump out loop when find target or have no solution*/
     while(!match_target(q.n[q.back-1])&&!is_empty_queue(&q)){
         find_next_board(&q);
-
     }
 
     /*If q is empty, it means cannot find a solution
      * from original board to target board*/
     if(is_empty_queue(&q)){
-        printf("cannot find the solution");
+        printf("Cannot find the solution...\n");
         return;
     }
     /*A recursion used to print out the route */
@@ -102,17 +125,13 @@ void show_solution(char *p){
 
 void find_next_board(Queue *q)
 {
-    int i,j,k,l,m;
+    int i,j,k;
     /*y[4] and x[4] are used to up, down, left or right swap*/
     int y[4]={-1,1,0,0};
     int x[4]={0,0,-1,1};
     Node new_node;
     /*Initialise new_node*/
-    for(i=0;i<SIZE;i++) {
-        for(j=0;j<SIZE;j++) {
-            new_node.board[i][j]=q->n[q->front].board[i][j];
-        }
-    }
+    copy_board(&new_node, q->n[q->front]);
     /*-1 has no meaning*/
     new_node.parent = -1;
 
@@ -137,11 +156,7 @@ void find_next_board(Queue *q)
                             return;
                         }
                         /* re-initialise new_node's board*/
-                        for(l=0;l<SIZE;l++) {
-                            for(m=0;m<SIZE;m++) {
-                                new_node.board[l][m]=q->n[q->front].board[l][m];
-                            }
-                        }
+                        copy_board(&new_node, q->n[q->front]);
                     }
                 }
                 /*Above code achieves that several new boards,
@@ -156,6 +171,16 @@ void find_next_board(Queue *q)
 
 }
 
+void copy_board(Node *destination, Node origin)
+{
+    int i,j;
+    for(i=0;i<SIZE;i++){
+        for(j=0;j<SIZE;j++){
+            destination->board[i][j]= origin.board[i][j];
+        }
+    }
+
+}
 void initialise_node(Node *t,char *p)
 {
     int i,j;
@@ -175,6 +200,7 @@ void initialise_queue(Queue *q)
 void insert(Node *t, Queue *q)
 {
     q->n[q->back]= *t;
+    /*back always 'points' to a void node */
     q->back = q->back+1;
 }
 
@@ -184,24 +210,24 @@ void move(Queue *q) {
 
 
 
-int is_empty_queue(Queue *q){
+bool is_empty_queue(Queue *q){
     if(q->front ==q->back){
-        return 1;
+        return TRUE;
     }else{
-        return 0;
+        return FALSE;
     }
 
 }
-int is_empty(char c){
+bool is_empty(char c){
     if(c==' '){
-        return 1;
+        return TRUE;
     }else{
-        return 0;
+        return FALSE;
     }
 }
 
 
-int search_exist(Queue *q, Node new_one)
+bool search_exist(Queue *q, Node new_one)
 {
     int i,j,k;
     int count=0;
@@ -214,16 +240,16 @@ int search_exist(Queue *q, Node new_one)
             }
         }
         if(count==SIZE*SIZE){
-            return 1;
+            return TRUE;
         }
         count = 0;
     }
 
-    return 0;
+    return FALSE;
 
 }
 
-int match_target(Node new_one){
+bool match_target(Node new_one){
     int i,j;
     int count=0;
     /*int 49 means char '1'*/
@@ -239,9 +265,9 @@ int match_target(Node new_one){
         }
     }
     if(count==8){
-        return 1;
+        return TRUE;
     }else{
-        return 0;
+        return FALSE;
     }
 
 }
