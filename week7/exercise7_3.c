@@ -21,7 +21,7 @@ typedef int bool;
 
 typedef struct node{
     char board[SIZE][SIZE];
-    struct node *parent ;
+    struct node *parent;
     struct node *next;
 } Node;
 
