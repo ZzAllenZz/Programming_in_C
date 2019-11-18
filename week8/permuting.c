@@ -5,7 +5,7 @@ void permute(char *a, int l, int r);
 void swap(char *a, char *b);
 int main()
 {
-    char str[] = "ABC";
+    char str[] = "ABCD";
     int n = strlen(str);
     permute(str, 0, n-1);
     return 0;
@@ -24,7 +24,7 @@ void permute(char *a, int l, int r)
 
         swap((a+l), (a+i)); /*backtrack*/
     }
-    printf("%s\n",a);
+
 }
 
 void swap(char *a, char *b){
