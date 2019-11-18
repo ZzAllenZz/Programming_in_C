@@ -24,7 +24,7 @@ void permute(char *a, int l, int r)
 
         swap((a+l), (a+i)); /*backtrack*/
     }
-
+    printf("%s\n",a);
 }
 
 void swap(char *a, char *b){
