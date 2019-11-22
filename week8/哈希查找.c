@@ -12,6 +12,7 @@ typedef struct {
 void init_hashtable(HashTable *H);
 void insert_hash(HashTable *H,int key);
 int search_hash(HashTable *H, int key, int *addr);
+int hash_function(int key);
 
 int main(void)
 {
@@ -64,7 +65,8 @@ void init_hashtable(HashTable *H)
 }
 
 /*散列函数（哈希函数）----除留余数法*/
-int hash_function(int key){
+int hash_function(int key)
+{
     return key % HASHSIZE;
 }
 

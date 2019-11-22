@@ -4,9 +4,9 @@ void merge_sort(int k[],int n);
 void merging(int *list_left,int list_left_size,int *list_right,int list_right_size);
 int main (void)
 {
-    int array[] = {3,2,1,9,7,5,8,4,0,6};
+    int array[] = {9,2,8,7,5,3,6,4,1,0};
     int i;
-    merge_sort(array,10);
+    merge_sort(array,MAXSIZE);
     printf("array after sort:\n ");
     for(i=0;i<MAXSIZE;i++){
         printf("%d ",array[i]);
@@ -26,16 +26,15 @@ void merge_sort(int k[],int n) {
     merge_sort(list_left,list_left_size);
     merge_sort(list_right,list_right_size);
     merging(list_left,list_left_size,list_right,list_right_size);
-
-
 }
 
 void merging(int *list_left,int list_left_size,int *list_right,int list_right_size)
 {
     int i,j,k,m;
     int temp[MAXSIZE];
-    i = j = k = m = 0;
-    while(i<list_left_size&&j<list_right_size){
+    i = j = k = 0;
+    m = 0;
+    while(i < list_left_size && j <list_right_size){
         if(list_left[i]<list_right[j]){
             temp[k] = list_left[i];
             k++;
@@ -45,12 +44,12 @@ void merging(int *list_left,int list_left_size,int *list_right,int list_right_si
         }
     }
     while(i<list_left_size){
-        temp[k++] = list_right[i++];
+        temp[k++] = list_left[i++];
     }
-    while(j<list_left_size){
+    while(j<list_right_size){
         temp[k++] = list_right[j++];
     }
-    for(m=0;m<(list_right_size+list_left_size);m++){
+    for(m ;m < (list_right_size+list_left_size);m++){
         list_left[m] = temp[m];
     }
 }
