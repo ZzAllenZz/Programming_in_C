@@ -1,6 +1,9 @@
 
 #include<stdio.h>
 #include<stdlib.h>
+#include <assert.h>
+#include<string.h>
+
 #define MAXSIZE 20
 typedef struct node{
     char c;
@@ -16,13 +19,18 @@ typedef struct node{
 
 Node *make_node(char c);
 Node *read_file(char *filename);
-Node *combine_smallest(Node **list_head);
+void combine_smallest(Node **list_head);
+void build_tree(Node **list_head);
+char *print_tree(Node *tree_list);
+void huff_coding(Node *tree_head, int length);
+
+
 int main(void)
 {
     Node *list_head;
     Node *tree_head;
     Node *temp;
-    Node *result;
+
     list_head = read_file("sample.txt");
 
     temp = list_head;
@@ -31,14 +39,17 @@ int main(void)
         temp = temp->next;
     }
 
-    result = combine_smallest(&list_head);
-    printf("%c %c\n",result->left->c,result->right->c);
+    build_tree(&list_head);
+    tree_head = list_head;
+    printf("%c %c\n",tree_head->left->c,tree_head->right->c);
+    printf("root left:%c , root right %c\n",tree_head->left->c,tree_head->right->left->left->left->c);
 
-    temp = list_head;
-    while(temp != NULL){
-        printf("%c occurs %d times\n",temp->c,temp->weight);
-        temp = temp->next;
-    }
+
+//    temp = list_head;
+//    while(temp != NULL){
+//        printf("%c occurs %d times\n",temp->c,temp->weight);
+//        temp = temp->next;
+//    }
 
     return 0;
 }
@@ -50,7 +61,7 @@ Node *read_file(char *filename)
     Node *p = list_head->next;
     Node *temp;
     char i;
-    int flag = 0;
+    int flag = 0; /*0 means not exist, 1 means exist*/
 
     fp = fopen(filename,"r");
     if(fp==NULL){
@@ -59,22 +70,26 @@ Node *read_file(char *filename)
     }
 
     while((i = getc(fp) ) != EOF){
-        while(flag==0 && p !=NULL){
-            if(p->c == i){
-                p->weight++;
-                flag=1;
+        if(i>=' '&&i <= '~'){ /*only care about visible char*/
+            while(flag==0 && p !=NULL){
+                if(p->c == i){
+                    p->weight++; /*frequency ++*/
+                    flag=1;
+                }
+                p = p->next;
             }
-            p = p->next;
-        }
 
-        if(flag ==0){
-            p = list_head->next;
-            temp= make_node(i);
-            list_head->next = temp;
-            temp->next=p;
+            if(flag ==0){
+                /*insert a new node*/
+                p = list_head->next;
+                temp= make_node(i);
+                list_head->next = temp;
+                temp->next=p;
+            }
+            /*reset*/
+            p= list_head->next;
+            flag=0;
         }
-        p= list_head->next;
-        flag=0;
     }
     return list_head->next; /* list_head is no meaning*/
 }
@@ -92,7 +107,7 @@ Node *make_node(char c)
  * delete this two;
  * generate a subtree and insert it into list_head;
  * */
-Node *combine_smallest(Node **list_head)
+void combine_smallest(Node **list_head)
 {
     Node *p = *list_head;
     Node *pre = NULL;
@@ -132,13 +147,13 @@ Node *combine_smallest(Node **list_head)
     p=*list_head;
     if(second_smallest==p->weight){
         n2= *list_head;
-        *list_head = (*list_head)->next;
+        *list_head = (*list_head)->next; /*delete*/
     }else{
         while(p->next->weight != second_smallest){
             p=p->next;
         }
         n2 = p->next;
-        p->next = p->next->next;
+        p->next = p->next->next;/*delete*/
     }
 
     p=*list_head;
@@ -149,6 +164,40 @@ Node *combine_smallest(Node **list_head)
     result->next= p; /*insert subtree node into linked list, and also insert as a new head*/
     *list_head = result;
 
-    return result;
+}
 
+void build_tree(Node **list_head)
+{
+    while((*list_head)->next !=NULL){
+        combine_smallest(list_head);
+    }
+}
+
+
+char *print_tree(Node *tree_list)
+{
+    char *str = (char *)calloc(MAXSIZE, sizeof(char));
+
+    if(str == NULL){
+        printf("failed to allocate....");
+        exit(EXIT_FAILURE);
+    }
+    if(tree_list == NULL){
+        strcmp(str,"*");
+        return str;
+    }
+    sprintf(str,"%c (%s) (%s)",tree_list->c,print_tree(tree_list->left),print_tree(tree_list->right));
+
+    return str;
+}
+
+void huff_coding(Node *tree_head, int length)
+{
+    static int a[MAXSIZE];
+
+    if(tree_head->left ==NULL &&tree_head->right==NULL){
+
+    }else{
+
+    }
 }
