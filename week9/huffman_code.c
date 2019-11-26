@@ -5,6 +5,8 @@
 #include<string.h>
 
 #define MAXSIZE 20
+#define LEFT    8
+#define  RIGHT  9
 typedef struct node{
     char c;
     int weight;
@@ -23,14 +25,15 @@ void combine_smallest(Node **list_head);
 void build_tree(Node **list_head);
 char *print_tree(Node *tree_list);
 void huff_coding(Node *tree_head, int length);
-
+void show_result(Node *tree_head,int *count);
 
 int main(void)
 {
     Node *list_head;
     Node *tree_head;
     Node *temp;
-
+    int *count  =(int *)calloc(1, sizeof(int));
+    *count = 0;
     list_head = read_file("sample.txt");
 
     temp = list_head;
@@ -41,15 +44,21 @@ int main(void)
 
     build_tree(&list_head);
     tree_head = list_head;
+    /*
     printf("%c %c\n",tree_head->left->c,tree_head->right->c);
     printf("root left:%c , root right %c\n",tree_head->left->c,tree_head->right->left->left->left->c);
+    */
+    huff_coding(tree_head,0);
+    /*
+    printf("char is %c , length is %d\n",tree_head->right->left->left->left->c,tree_head->right->left->left->left->length);
+    for(i=0;i<tree_head->right->left->left->left->length;i++){
 
+        printf("%d\n ",tree_head->right->left->left->left->huff_code[i]);
+    }
+    */
+    show_result(tree_head,count);
+    printf("%d bytes\n",*count);
 
-//    temp = list_head;
-//    while(temp != NULL){
-//        printf("%c occurs %d times\n",temp->c,temp->weight);
-//        temp = temp->next;
-//    }
 
     return 0;
 }
@@ -194,10 +203,33 @@ char *print_tree(Node *tree_list)
 void huff_coding(Node *tree_head, int length)
 {
     static int a[MAXSIZE];
-
-    if(tree_head->left ==NULL &&tree_head->right==NULL){
-
-    }else{
-
+    int i;
+    if(tree_head->left == NULL &&tree_head->right == NULL){
+        tree_head->length = length;
+        for(i=0;i<length;i++){
+            tree_head->huff_code[i] = a[i]-LEFT;
+        }
+        return;
     }
+    a[length] = LEFT;
+    huff_coding(tree_head->left,length+1);
+    a[length] = RIGHT;
+    huff_coding(tree_head->right,length+1);
+    a[length] = 0;
+}
+
+void show_result(Node *tree_head,int *count)
+{
+    int i;
+    if(tree_head->left==NULL &&tree_head->right==NULL){
+        printf("\'%c\' :\t",tree_head->c);
+        for(i=0;i<tree_head->length;i++){
+            printf("%d",tree_head->huff_code[i]);
+        }
+        printf("\t(\t%d *\t%d)\n",tree_head->length,tree_head->weight);
+        *count += tree_head->weight*tree_head->length;
+        return;
+    }
+    show_result(tree_head->left,count);
+    show_result(tree_head->right,count);
 }
