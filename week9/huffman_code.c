@@ -34,7 +34,7 @@ int main(void)
     Node *temp;
     int *count  =(int *)calloc(1, sizeof(int));
     *count = 0;
-    list_head = read_file("sample.txt");
+    list_head = read_file("sample2.txt");
 
     temp = list_head;
     while(temp != NULL){
