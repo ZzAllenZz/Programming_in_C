@@ -1,8 +1,8 @@
 #include<stdio.h>
 #include<stdlib.h>
 #define MAXSIZE 5
-#define LENGTH 200
-#define WIDTH 200
+#define LENGTH 100
+#define WIDTH 100
 typedef struct node{
     char number[MAXSIZE];
     int depth;
