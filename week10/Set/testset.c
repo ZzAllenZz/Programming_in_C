@@ -14,15 +14,24 @@ int main(void)
    printf("Basic Set Tests ... Start\n");
 
    /* Check basic set NULL (empty) operations are dealt with correctly */
+
    assert(set_size(NULL)==0);
+
    set_remove(NULL,18);
+
    set_insert(NULL, 1);
+    printf("111\n");
    set_free(NULL);
+    printf("222\n");
    assert(set_contains(NULL,0)==0);
    /* Check 2 set NULL (empty) operations are dealt with correctly */
+
    sa = set_fromarray(NULL, 0);
+
    assert(sa != NULL);
+    printf("333\n");
    assert(set_size(sa) == 0);
+    printf("444\n");
    sb = set_copy(sa);
    assert(sb != NULL);
    assert(set_size(sb) == 0);
@@ -64,6 +73,7 @@ int main(void)
    sa = set_fromarray(aa,4);
    assert(set_size(sa)==3);
    sb = set_fromarray(ab,4);
+    assert(set_size(sa)==3);
    assert(set_size(sb)==4);
    assert(set_contains(sa,1)==1);
    assert(set_contains(sb,1)==0);
@@ -87,9 +97,11 @@ int main(void)
    /* Copying */
    sc = set_copy(sa);
    assert(set_size(sa)==set_size(sc));
+/*
    for(i=0; i<set_size(sc); i++){
       assert(set_contains(sa, set_removeone(sc)));
    }
+*/
 
    /* Clear */
    set_free(&sa);
