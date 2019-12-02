@@ -20,18 +20,15 @@ int main(void)
    set_remove(NULL,18);
 
    set_insert(NULL, 1);
-    printf("111\n");
    set_free(NULL);
-    printf("222\n");
+
    assert(set_contains(NULL,0)==0);
    /* Check 2 set NULL (empty) operations are dealt with correctly */
 
    sa = set_fromarray(NULL, 0);
 
    assert(sa != NULL);
-    printf("333\n");
    assert(set_size(sa) == 0);
-    printf("444\n");
    sb = set_copy(sa);
    assert(sb != NULL);
    assert(set_size(sb) == 0);
@@ -89,19 +86,23 @@ int main(void)
    assert(set_contains(su,2)==1);
 
    /* Intersections */
-   si = set_intersection(sa, sb);
-   assert(set_contains(si,7)==1);
-   assert(set_contains(si,5)==0);
-   assert(set_size(si)==1);
+    si = set_intersection(sa, sb);
+    assert(set_contains(si,7)==1);
+    assert(set_contains(si,5)==0);
+    assert(set_contains(si,1)==0);
+    assert(set_contains(si,4)==0);
+    assert(set_contains(si,2)==0);
+    assert(set_contains(si,6)==0);
+    assert(set_size(si)==1);
 
    /* Copying */
    sc = set_copy(sa);
    assert(set_size(sa)==set_size(sc));
-/*
+
    for(i=0; i<set_size(sc); i++){
       assert(set_contains(sa, set_removeone(sc)));
    }
-*/
+
 
    /* Clear */
    set_free(&sa);

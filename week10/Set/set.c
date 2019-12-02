@@ -69,7 +69,11 @@ void set_insert(set* s, arrtype l)
         s->sz++;
         return;
     }
-
+    if(s->sz==0){
+        s->ua->data[0] = l;
+        s->sz++;
+        return;
+    }
     size= s->sz;
 
     for(i=0;i<size;i++){
@@ -77,8 +81,8 @@ void set_insert(set* s, arrtype l)
             return;
         }
     }
-    s->sz++;
     arr_set(s->ua,s->sz,l);
+    s->sz++;
 }
 
 /* Return size of the set */
@@ -94,7 +98,7 @@ int set_size(set* s)
 int set_contains(set* s, arrtype l)
 {
     int i;
-    if(s==NULL){
+    if(s==NULL||s->sz==0){
         return 0;
     }
     for(i=0;i<s->sz;i++){
@@ -110,7 +114,7 @@ void set_remove(set* s, arrtype l)
 {
     int i;
     int j;
-    if(s== NULL){
+    if(s== NULL||s->sz==0){
         return;
     }
     for(i=0;i<s->sz;i++){
@@ -129,9 +133,12 @@ void set_remove(set* s, arrtype l)
    particular order for the elements, so any will do */
 arrtype set_removeone(set* s){
     int size;
+    if(s==NULL ||s->sz == 0){
+        ON_ERROR("Empty Set cannot remove one!\n");
+    }
     size = s->sz;
     s->sz--;
-    return s->ua->data[size];
+    return s->ua->data[size-1];
 }
 /* Operations on 2 sets */
 /* Create a new set, containing all elements from s1 & s2 */
@@ -161,14 +168,13 @@ set* set_intersection(set* s1, set* s2)
 {
     set *new_set;
     int i;
-
     if(s1 == NULL ||s2 ==NULL){
         return set_init();
     }
-    new_set = set_copy(s1);
+    new_set = set_init();
     for(i=0;i<s2->sz;i++){
-        if(set_contains(s2,new_set->ua->data[i])==0){
-            set_remove(new_set,new_set->ua->data[i]);
+        if(set_contains(s1,s2->ua->data[i])==1){
+            set_insert(new_set,s2->ua->data[i]);
         }
     }
     return new_set;
