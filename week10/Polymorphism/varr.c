@@ -32,13 +32,14 @@ void arr_set(arr *l, int n, void* v)
         ON_ERROR("Array accessed with negative index ...\n");
     }
     if(n >= l->pz){
-        l->data = realloc(l->data, sizeof(l->elsz)*(1+l->pz));
+        l->data = realloc(l->data, l->elsz*(1+n));
         if(l->data == NULL){
             ON_ERROR("Resize of Array Failed\n");
         }
         l->pz = n+1;
     }
-    memcpy(((char *)l->data+n* sizeof(l->elsz)),v, sizeof(l->elsz));
+
+    memcpy(((char *)l->data+n*l->elsz),v, l->elsz);
 
 }
 
@@ -49,7 +50,7 @@ void* arr_get(arr *l, int n)
     if((n >= l->pz) || (n < 0)){
         ON_ERROR("Array read out of bounds\n");
     }
-    return ((char *)l->data+ sizeof(l->elsz)*n);
+    return ((char *)l->data+ l->elsz*n);
 }
 
 /* Clears all space used, and sets pointer to NULL */
@@ -60,3 +61,4 @@ void arr_free(arr **l)
     free(temp);
     *l = NULL;
 }
+

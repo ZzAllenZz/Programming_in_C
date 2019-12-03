@@ -12,6 +12,7 @@ int main(void)
 
    arr *aint;
    arr *astr;
+   double a = 12.5, b = 25.0, *c;
    char str1[STRSIZE];
    char str2[STRSIZE];
    int i, *j;
@@ -23,26 +24,48 @@ int main(void)
    aint = arr_init(sizeof(i));
    assert(aint != NULL);
    /* Simple gets & sets */
-   i = 1; 
+   i = 1;
+
    arr_set(aint, 0, &i);
-   i = 2; 
+   i = 2;
+
    arr_set(aint, 4, &i);
+
    j = arr_get(aint, 0);
+
    assert((*j)==1);
+
    j = arr_get(aint, 4);
    assert((*j)==2);
+
    arr_free(&aint);
    assert(aint==NULL);
 
+    printf("111\n");
+    aint = arr_init(sizeof(a));
+    assert(aint != NULL);
+    arr_set(aint, 0, &a);
+    c= arr_get(aint,0);
+    assert((*c)==12.5);
+    arr_set(aint, 1000, &b);
+    c= arr_get(aint,1000);
+    assert((*c)==25.0);
+    printf("222\n");
+
+
    aint = arr_init(sizeof(i));
+
    for(i=1; i<10000; i+=100){
       arr_set(aint, i, &i);
       j = arr_get(aint, i);
       assert((*j)==i);
+
       /* Check getting an unset valie is OK, though
          no particular value can be expected */
       assert(arr_get(aint, i-1) != NULL);
+
    }
+
    arr_free(&aint);
    assert(aint==NULL);
 
@@ -50,13 +73,16 @@ int main(void)
    /* Set up empty array */
    astr = arr_init(STRSIZE);
    assert(astr != NULL);
+
    for(i=1; i<10000; i+=100){
       sprintf(str1, "%05d", i);
+
       arr_set(astr, i, str1);
       strcpy(str2, arr_get(astr,i));
       assert(strcmp(str1, str2)==0);
       assert(arr_get(astr, i-1) != NULL);
    }
+
    arr_free(&astr);
    assert(astr==NULL);
 
