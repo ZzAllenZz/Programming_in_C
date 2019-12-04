@@ -34,7 +34,7 @@ void arr_set(arr *l, int n, void* v)
     if(n >= l->pz){
         l->data = realloc(l->data, l->elsz*(1+n));
         if(l->data == NULL){
-            ON_ERROR("Resize of Array Failed\n");
+            ON_ERROR("Resize of Array Failed.\n");
         }
         l->pz = n+1;
     }
