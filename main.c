@@ -1,52 +1,101 @@
-#include <stdio.h>
-#define MAXSIZE 10
-void quick_sort(int array[],int low,int high);
-int partition(int array[],int low, int high);
-void swap(int array[],int low, int high);
 
-int main (void)
+#include<stdio.h>
+#include<stdlib.h>
+#include <string.h>
+
+#define HASHSIZE 12
+#define NULLKEY  -1
+typedef struct {
+    int *array;
+    int size;
+} HashTable;
+
+void init_hashtable(HashTable *H);
+void insert_hash(HashTable *H,int key);
+int search_hash(HashTable *H, int key, int *addr);
+int hash_function(int key);
+
+int main(void)
 {
-    int array[] = {0,3,8,6,1,2,5,7,4,9};
+    HashTable *H = (HashTable *)malloc(sizeof(HashTable));
+    int *addr = (int *)malloc(sizeof(int));
+    int insert_key;
+    int search_key;
+    int search_result;
+    init_hashtable(H);
+    char * str = calloc(100,sizeof(char));
+    printf("%d\n",strlen(str));
+    printf("%c\n",str[1]);
+    printf("-----store in hashtable-----\n");
+    printf("enter the data you want to store(-1 for exit!):\n");
+    while(1){
+        scanf("%d",&insert_key);
+        if(insert_key==-1){
+            break;
+        }
+        insert_hash(H,insert_key);
+    }
+
+    printf("store finished\n");
+    printf("enter the key you want to search:\n");
+    while(1){
+        scanf("%d",&search_key);
+        if(search_key==-1){
+            break;
+        }
+        search_result = search_hash(H,search_key,addr);
+        if(search_result==1){
+            printf("find key,address is  %d\n",*addr);
+        }else{
+            printf("cannot find the key!\n");
+        }
+    }
+    return 1;
+}
+
+/*初始化HashTable*/
+void init_hashtable(HashTable *H)
+{
     int i;
-    quick_sort(array,0,MAXSIZE-1);
-    printf("array after sort:\n ");
-    for(i=0;i<10;i++){
-        printf("%d ",array[i]);
+    H->array = (int *)malloc(sizeof(int));
+    if(!H){
+        printf("Failed to allocate....\n");
+        exit(EXIT_FAILURE);
     }
-
-}
-
-void quick_sort(int array[],int low, int high)
-{
-    int point;
-    if(low <high){
-        point=partition(array,low,high);
-        quick_sort(array,low,point-1);
-        quick_sort(array,point+1,high);
+    H->size = HASHSIZE;
+    for(i=0;i<HASHSIZE;i++){
+        H->array[i] =NULLKEY;
     }
 }
 
-int partition(int array[],int low, int high)
+/*散列函数（哈希函数）----除留余数法*/
+int hash_function(int key)
 {
-    int point;
-    point = array[low];
-    while(low < high){
-        while(low<high && array[high]>=point){
-            high--;
+    return key % HASHSIZE;
+}
+
+/*插入关键字key到哈希表中*/
+void insert_hash(HashTable *H,int key)
+{
+    int addr;
+    addr = hash_function(key);
+    while(H->array[addr] != NULLKEY){ /*如果不为NULLKEY,则说明出现了冲突*/
+        addr = (addr+1) % HASHSIZE; /*线性探测法*/
+    }
+    H->array[addr] = key;
+}
+
+/*寻找关键字*/
+int search_hash(HashTable *H, int key, int *addr)
+{
+    *addr = hash_function(key);
+    while(H->array[*addr] != key){
+
+        *addr = (*addr+1) % HASHSIZE; /*线性探测法*/
+        if(H->array[*addr] == NULLKEY || *addr == hash_function(key)){
+            /*if  *addr == hash_function(key),说明绕了一圈，还没找到，所以不存在！*/
+            return 0;
         }
-        swap(array,low,high);
-        while(low<high && array[low]<=point){
-            low++;
-        }
-        swap(array,low,high);
     }
-    return low;
-}
-
-void swap(int array[],int low, int high)
-{
-    int temp;
-    temp = array[low];
-    array[low] = array[high];
-    array[high] =temp;
+    return 1;/*存在！*/
 }
