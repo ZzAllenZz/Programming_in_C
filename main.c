@@ -1,134 +1,97 @@
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-typedef struct _node{
-    char *name;
-    char *desc;
-    struct _node *next;
-}node;
+#include<stdio.h>
+#include<stdlib.h>
 
-#define HASHSIZE 101
-static node* hashtab[HASHSIZE];
-void inithashtab(){
-    int i;
-    for(i=0;i<HASHSIZE;i++)
-        hashtab[i]=NULL;
-}
+#define HASHSIZE 12
+#define NULLKEY  -1
+typedef struct {
+    int *array;
+    int size;
+} HashTable;
 
-unsigned int hash(char *s){
-    unsigned int h=0;
-    for(;*s;s++)
-        h=*s+h*31;
-    return h%HASHSIZE;
-}
+void init_hashtable(HashTable *H);
+void insert_hash(HashTable *H,int key);
+int search_hash(HashTable *H, int key, int *addr);
+int hash_function(int key);
 
-node* lookup(char *n){
-    unsigned int hi=hash(n);
-    node* np=hashtab[hi];
-    for(;np!=NULL;np=np->next){
-        if(!strcmp(np->name,n))
-            return np;
+int main(void)
+{
+    HashTable *H = (HashTable *)malloc(sizeof(HashTable));
+    int *addr = (int *)malloc(sizeof(int));
+    int insert_key;
+    int search_key;
+    int search_result;
+    init_hashtable(H);
+    printf("-----store in hashtable-----\n");
+    printf("enter the data you want to store(-1 for exit!):\n");
+    while(1){
+        scanf("%d",&insert_key);
+        if(insert_key==-1){
+            break;
+        }
+        insert_hash(H,insert_key);
     }
-    return NULL;
-}
 
-char* m_strdup(char *o){
-    int l=strlen(o)+1;
-    char *ns=(char*)malloc(l*sizeof(char));
-    strcpy(ns,o);
-    if(ns==NULL)
-        return NULL;
-    else
-        return ns;
-}
-
-char* get(char* name){
-    node* n=lookup(name);
-    if(n==NULL)
-        return NULL;
-    else
-        return n->desc;
-}
-
-int install(char* name,char* desc){
-    unsigned int hi;
-    node* np;
-    if((np=lookup(name))==NULL){
-        hi=hash(name);
-        np=(node*)malloc(sizeof(node));
-        if(np==NULL)
-            return 0;
-
-        np->name=m_strdup(name);
-        if(np->name==NULL) return 0;
-        np->next=hashtab[hi];
-        hashtab[hi]=np;
+    printf("store finished\n");
+    printf("enter the key you want to search:\n");
+    while(1){
+        scanf("%d",&search_key);
+        if(search_key==-1){
+            break;
+        }
+        search_result = search_hash(H,search_key,addr);
+        if(search_result==1){
+            printf("find key,address is  %d\n",*addr);
+        }else{
+            printf("cannot find the key!\n");
+        }
     }
-    else
-        free(np->desc);
-    np->desc=m_strdup(desc);
-    if(np->desc==NULL) return 0;
     return 1;
 }
 
-/* A pretty useless but good debugging function,
-which simply displays the hashtable in (key.value) pairs
-*/
-
-void displaytable(){
+/*初始化HashTable*/
+void init_hashtable(HashTable *H)
+{
     int i;
-    node *t;
+    H->array = (int *)malloc(HASHSIZE*sizeof(int));
+    if(!H){
+        printf("Failed to allocate....\n");
+        exit(EXIT_FAILURE);
+    }
+    H->size = HASHSIZE;
     for(i=0;i<HASHSIZE;i++){
-        if(hashtab[i]==NULL)
-            printf("()");
-        else{
-            t=hashtab[i];
-            printf("(");
-            for(;t!=NULL;t=t->next)
-                printf("(%s.%s) ",t->name,t->desc);
-            printf(".)\n");
-        }
+        H->array[i] =NULLKEY;
     }
 }
 
-void cleanup(){
-    int i;
-    node *np,*t;
-    for(i=0;i<HASHSIZE;i++){
-        if(hashtab[i]!=NULL){
-            np=hashtab[i];
-            while(np!=NULL){
-                t=np->next;
-                free(np->name);
-                free(np->desc);
-                free(np);
-                np=t;
-            }
-        }
-    }
+/*散列函数（哈希函数）----除留余数法*/
+int hash_function(int key)
+{
+    return key % HASHSIZE;
 }
 
-main(){
-    int i;
-    char* names[]={"name","address","phone","k101","k110"};
-    char* descs[]={"Sourav","Sinagor","26300788","Value1","Value2"};
-    inithashtab();
-//增加部分--------------------------打印hash_table_index
-    for(i = 0; i < 5; i++)
-    {
-        unsigned int hi=hash(names[i]);
-        printf("%s--hash_table_index=%d\n", names[i], hi);
+/*插入关键字key到哈希表中*/
+void insert_hash(HashTable *H,int key)
+{
+    int addr;
+    addr = hash_function(key);
+    while(H->array[addr] != NULLKEY){ /*如果不为NULLKEY,则说明出现了冲突*/
+        addr = (addr+1) % HASHSIZE; /*线性探测法*/
     }
-//---------------------------------------打印hash_table_index
-    for(i=0;i<5;i++)
-        install(names[i],descs[i]);
-    printf("Done\n");
-    printf("If we didnt do anything wrong..""we should see %s\n",get("k110"));
-    install("phone","9433120451");
-    printf("Again if we go right, we have %s and %s\n",get("k101"),get("phone"));
-    displaytable();
-    cleanup();
+    H->array[addr] = key;
+}
 
-    return 0;
+/*寻找关键字*/
+int search_hash(HashTable *H, int key, int *addr)
+{
+    *addr = hash_function(key);
+    while(H->array[*addr] != key){
+
+        *addr = (*addr+1) % HASHSIZE; /*线性探测法*/
+        if(H->array[*addr] == NULLKEY || *addr == hash_function(key)){
+            /*if  *addr == hash_function(key),说明绕了一圈，还没找到，所以不存在！*/
+            return 0;
+        }
+    }
+    return 1;/*存在！*/
 }

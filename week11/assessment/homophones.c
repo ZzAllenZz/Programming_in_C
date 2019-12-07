@@ -62,6 +62,7 @@ void read_in(char *filename, int n)
         reinit_array(str2,strlen(str2));
     }
 
+    fclose(fp);
     search(map_one,map_two,"PASSING");
 
 }

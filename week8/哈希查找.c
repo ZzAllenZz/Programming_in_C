@@ -53,7 +53,7 @@ int main(void)
 void init_hashtable(HashTable *H)
 {
     int i;
-    H->array = (int *)malloc(sizeof(int));
+    H->array = (int *)malloc(HASHSIZE *sizeof(int));
     if(!H){
         printf("Failed to allocate....\n");
         exit(EXIT_FAILURE);
