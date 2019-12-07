@@ -47,7 +47,7 @@ char* mvm_print(mvm* m)
 {
     if(m != NULL){
         mvmcell *temp = m->head;
-        char *str = (char *)malloc(100*sizeof(char));
+        char *str = (char *)malloc(10000*sizeof(char));
         int offset = 0;
         while(temp != NULL){
 
@@ -103,8 +103,6 @@ char* mvm_search(mvm* m, char* key)
 
             return NULL;
         }
-
-
         return temp->data;
     }
     return NULL;
@@ -119,9 +117,9 @@ char** mvm_multisearch(mvm* m, char* key, int* n)
         int index = 0;
         mvmcell *temp = m->head;
         *n = 0;
-        a = (char **)calloc(20, sizeof(char *));
-        for(i=0;i<20;i++){
-            a[i] =(char *) calloc(10, sizeof(char));
+        a = (char **)calloc(2000, sizeof(char *));
+        for(i=0;i<2000;i++){
+            a[i] =(char *) calloc(1000, sizeof(char));
         }
         while(temp!=NULL){
             if(strcmp(temp->key,key)==0){
@@ -136,9 +134,28 @@ char** mvm_multisearch(mvm* m, char* key, int* n)
     return NULL;
 }
 
+void free_linked_list(mvmcell *head)
+{
+    if(head !=NULL){
+        mvmcell *current = head;
+        mvmcell *previous = NULL;
+        while(current->next != NULL){
+            previous = current;
+            current = current->next;
+            free(previous->next);
+            free(previous->key);
+            free(previous->data);
+        }
+        free(previous);
+        free(current);
+    }
+}
 /* Free & set p to NULL */
 void mvm_free(mvm** p)
 {
+    free_linked_list((*p)->head);
+    free((*p)->head);
+    free(*p);
     *p =NULL;
 }
 
