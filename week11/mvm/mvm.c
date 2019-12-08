@@ -5,10 +5,7 @@
 
 #include "mvm.h"
 
-/*question:
- * 1.the max size of data and key?
- * 2.the max map? because print str and multiplesearch str !!!
- * */
+
 mvm *mvm_init(void)
 {
     mvm *m = (mvm *)malloc(sizeof(mvm));
