@@ -5,27 +5,33 @@
 #include <math.h>
 
 #include "fmvm.h"
-#define HASHSIZE 101
+
 #define NULLKEY -1
 #define ALPHABLET 26
-/*question:
- * 1.the max size of data and key?
- * 2.the max map? because print str and multiplesearch str !!!
- * */
+
+void array_init(mvmcell array[HASHSIZE]);
 int hash_function(char *key);
 
 mvm *mvm_init(void)
 {
     mvm *m = (mvm *)calloc(1,sizeof(mvm));
-    int i;
-    m->array = (mvmcell *)malloc(HASHSIZE*sizeof(mvmcell));
-    m->numkeys = 0;
-    for(i=0;i<HASHSIZE;i++){
-        m->array[i].key = (char *)calloc(50,sizeof(char));
-        m->array[i].data = (char *)calloc(50,sizeof(char));
-        m->array[i].address = NULLKEY;
+    if(m==NULL){
+        ON_ERROR("Failed to allocate for m...\n");
     }
+    array_init(m->array);
+    m->numkeys = 0;
     return m;
+}
+
+void array_init(mvmcell array[HASHSIZE])
+{
+    int i;
+    for(i=0;i<HASHSIZE;i++){
+        array[i].key = NULL;
+        array[i].data = NULL;
+        array[i].address = NULLKEY;
+        array[i].next = NULL;
+    }
 }
 
 int mvm_size(mvm* m)
@@ -39,18 +45,41 @@ int mvm_size(mvm* m)
 /* Insert one key/value pair */
 void mvm_insert(mvm* m, char* key, char* data)
 {
-    if(m!=NULL&&key !=NULL && data != NULL){
-       int address;
-       address = hash_function(key);
-       while(strcmp(m->array[address].key,key)==0){
-            address = (address+ 1)%HASHSIZE;
-       }
-       strcpy(m->array[address].key,key);
-       strcpy(m->array[address].data,data);
-       m->array[address].address = address;
-       m->numkeys++;
+    int address;
+    mvmcell *new_cell;
+    mvmcell *temp;
+    if( m==NULL ||key ==NULL || data == NULL) {
+        return;
+    }
+    address = hash_function(key);
+    if(m->array[address].address == NULLKEY){
+        m->array[address].data = (char *)malloc(sizeof(char)*strlen(data)+sizeof(char));
+        m->array[address].key= (char *)malloc(sizeof(char)*strlen(key)+sizeof(char));
+        m->array[address].address = address;
+        strcpy(m->array[address].key,key);
+        strcpy(m->array[address].data,data);
+        m->numkeys++;
+        return;
+    }
+    new_cell = (mvmcell*)malloc(sizeof(mvmcell));
+    new_cell->data = (char *)malloc(sizeof(char)*strlen(data)+sizeof(char));
+    new_cell->key = (char *)malloc(sizeof(char)*strlen(key)+sizeof(char));
+    new_cell->address = address;
+    new_cell->next = NULL;
+    strcpy(new_cell->key,key);
+    strcpy(new_cell->data,data);
+    m->numkeys++;
+    if(m->array[address].next == NULL ){
+        m->array[address].next = new_cell;
+    }else{
+        temp = m->array[address].next;
+        while(temp->next != NULL){
+            temp = temp->next;
+        }
+        temp->next = new_cell;
     }
 }
+
 
 int hash_function(char *key)
 {
@@ -58,7 +87,7 @@ int hash_function(char *key)
     int i;
     int address = 0;
     for(i=0;i<len;i++){
-        address += (key[i]-'a')*(int)pow((double)ALPHABLET,(double)i);
+        address += (key[i]-96)*(int)pow((double)ALPHABLET,(double)i);
 
     }
 
@@ -69,53 +98,62 @@ int hash_function(char *key)
 /* Store list as a string "[key](value) [key](value) " etc.  */
 char* mvm_print(mvm* m)
 {
-    if(m != NULL){
-        int i;
-        int offset = 0;
-        int count = 0;
-        int address;
-        char *str = (char *)malloc(10000*sizeof(char));
-        for(i=0;i<HASHSIZE;i++){
-            if(m->array[i].address != NULLKEY){
-
-                address = m->array[i].address;
-                offset += sprintf(str+offset,"[%s](%s) ",m->array[address].key,m->array[address].data);
-                count++;
-
-            }
-            if(count == m->numkeys){
-                return  str;
-            }
-
-        }
-
-        return str;
+    mvmcell *temp;
+    char *str = (char *)calloc(1,sizeof(char));
+    int offset = 0;
+    int i;
+    if(m == NULL){
+        return NULL;
     }
-    return  NULL;
 
+    for(i=0;i<HASHSIZE;i++){
+        if(m->array[i].address != NULLKEY){
+            str = (char *)realloc(str,(strlen(str)+strlen(m->array[i].key)+strlen(m->array[i].data)\
+            +strlen("[]() "))*sizeof(char)+sizeof(char));
+            offset += sprintf(str+offset,"[%s](%s) ",m->array[i].key,m->array[i].data);
+            temp = m->array[i].next;
+            while(temp!=NULL){
+                str = (char *)realloc(str,(strlen(str)+strlen(temp->key)+strlen(temp->data)\
+                +strlen("[]() "))*sizeof(char)+sizeof(char));
+                offset += sprintf(str+offset,"[%s](%s) ",temp->key,temp->data);
+                temp = temp->next;
+            }
+        }
+    }
+    return str;
 }
 
 /* Remove one key/value */
 void mvm_delete(mvm* m, char* key)
 {
-    if(m!=NULL&& key != NULL){
-        int address;
-        int count = 0;
-        address = hash_function(key);
-        while(strcmp(m->array[address].key,key)!=0&& count <=HASHSIZE){
-            address = (address+1)%HASHSIZE;
-            count++;
-        }
-        if(count >HASHSIZE){
-            return;
-        }
+    int address;
+    mvmcell *temp;
+    if(m ==NULL || key ==NULL){
+        return;
+    }
+    address = hash_function(key);
+    if(m->array[address].address == NULLKEY){
+        return;
+    }
+    m->numkeys--;
+    if(strcmp(m->array[address].key,key)==0){
         free(m->array[address].key);
         free(m->array[address].data);
-        m->numkeys--;
-        m->array->address = NULLKEY;
-        m->array[address].data = (char *)calloc(50,sizeof(char));
-        m->array[address].key = (char *)calloc(50,sizeof(char));
+        if(m->array[address].next==NULL){
+            m->array[address].address = NULLKEY;
+            return;
+        }
+        temp = m->array[address].next;
+        m->array[address].next = m->array[address].next->next;
+        m->array[address].key = m->array[address].next->key;
+        m->array[address].data = m->array[address].next->data;
+        free(temp);
+        return;
     }
+
+
+
+
 }
 
 /* Return the corresponding value for a key */

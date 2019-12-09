@@ -9,19 +9,22 @@
 
 /* Error that can't be ignored */
 #define ON_ERROR(STR) fprintf(stderr, STR); exit(EXIT_FAILURE)
-
+#define HASHSIZE 3000000
 struct mvmcell {
    char* key;
    char* data;
    int address;
+   struct mvmcell *next;
 };
 typedef struct mvmcell mvmcell;
 
 struct mvm {
-   mvmcell *array;
+   mvmcell array[HASHSIZE];
    int numkeys;
 };
 typedef struct mvm mvm;
+
+int hash_function(char *key);
 
 mvm* mvm_init(void);
 /* Number of key/value pairs stored */

@@ -1,5 +1,5 @@
-CFLAGS = -O2 -Wall -Wextra -Werror -Wfloat-equal -pedantic -ansi
-DFLAGS = -g3 -Wall -Wextra -Werror -Wfloat-equal -pedantic -ansi
+CFLAGS = -O2 -Wall -Wextra -Werror -Wfloat-equal -pedantic -ansi -lm
+DFLAGS = -g3 -Wall -Wextra -Werror -Wfloat-equal -pedantic -ansi -lm
 SFLAGS = -g3 -fsanitize=undefined -fsanitize=address
 TESTBASE = testmvm
 INCS = mvm.h
