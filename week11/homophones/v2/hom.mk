@@ -8,7 +8,7 @@ EXECS = $(TESTBASE) $(TESTBASE)_d $(TESTBASE)_s homophone
 CC = clang
 
 run: $(TESTBASE)
-	./$(TESTBASE) -n 2 BOY
+	./$(TESTBASE) -n 4 CHRISTMAS PROGRAM PASSING
 
 all: $(EXECS)
 
@@ -26,7 +26,7 @@ clean:
 
 memleaks: $(TESTBASE)_d $(TESTBASE)_s
 	@echo "Sanitize :"
-	@./$(TESTBASE)_s BOY
+	@./$(TESTBASE)_s -n 4 CHRISTMAS PROGRAM PASSING
 	@echo "Valgrind :"
-	@valgrind --leak-check=full ./$(TESTBASE)_d BOY
+	@valgrind --leak-check=full $(TESTBASE)_d -n 4 CHRISTMAS PROGRAM PASSING
 

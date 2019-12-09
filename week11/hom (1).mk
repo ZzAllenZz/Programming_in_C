@@ -8,7 +8,7 @@ EXECS = $(TESTBASE) $(TESTBASE)_d $(TESTBASE)_s homophone
 CC = clang
 
 run: $(TESTBASE)
-	./$(TESTBASE) -n 2 BOY
+	./$(TESTBASE) BOY
 
 all: $(EXECS)
 
@@ -28,5 +28,5 @@ memleaks: $(TESTBASE)_d $(TESTBASE)_s
 	@echo "Sanitize :"
 	@./$(TESTBASE)_s BOY
 	@echo "Valgrind :"
-	@valgrind --leak-check=full ./$(TESTBASE)_d BOY
+	@valgrind --leak-check=full $(TESTBASE)_d BOY
 
