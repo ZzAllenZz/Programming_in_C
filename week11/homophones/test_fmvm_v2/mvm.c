@@ -25,11 +25,12 @@ int mvm_size(mvm* m)
 /* Insert one key/value pair */
 void mvm_insert(mvm* m, char* key, char* data)
 {
-    mvmcell *cell;
+    mvmcell *cell = (mvmcell *)malloc(sizeof(mvmcell));
     if(m==NULL||key == NULL||data ==NULL){
+        free(cell);
         return;
     }
-    cell = (mvmcell *)malloc(sizeof(mvmcell));
+
     cell->data = (char *)malloc(sizeof(char)*strlen(data)+sizeof(char));
     cell->key = (char *)malloc(sizeof(char)*strlen(key)+sizeof(char));
     strcpy(cell->key,key);
@@ -90,13 +91,14 @@ void mvm_delete(mvm* m, char* key)
 }
 
 /* Return the corresponding value for a key */
-char* mvm_search(mvm* m, char* key)
+char* mvm_search(mvm* m, char* key,int *time)
 {
     if(m!=NULL&&key!=NULL){
         mvmcell *temp = m->head;
-
+        *time = 1;
         while(temp != NULL && strcmp(temp->key,key)!=0 ){/*why???*/
             temp = temp ->next;
+            (*time)++;
         }
 
         if(temp == NULL){
@@ -108,13 +110,14 @@ char* mvm_search(mvm* m, char* key)
 }
 
 /* Return *argv[] list of pointers to all values stored with key, n is the number of values */
-char** mvm_multisearch(mvm* m, char* key, int* n)
+char** mvm_multisearch(mvm* m, char* key, int* n,int *time)
 {
     if(m !=NULL&& key!=NULL&& n != NULL){
         char **a;
         int index = 0;
         mvmcell *temp = m->head;
         *n = 0;
+        *time = 0;
         a = (char **)malloc(sizeof(char *));
     
         while(temp!=NULL){
@@ -125,8 +128,11 @@ char** mvm_multisearch(mvm* m, char* key, int* n)
                 index ++;      
             }
             temp = temp ->next;
+            (*time)++;
         }
+        *time = *time/index;
         return  a;
+
     }
     return NULL;
 }

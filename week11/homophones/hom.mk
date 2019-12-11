@@ -8,7 +8,7 @@ EXECS = $(TESTBASE) $(TESTBASE)_d $(TESTBASE)_s homophone
 CC = clang
 
 run: $(TESTBASE)
-	./$(TESTBASE) -n 2 BOY
+	./$(TESTBASE) -n 3 BIGLER(2)
 
 all: $(EXECS)
 

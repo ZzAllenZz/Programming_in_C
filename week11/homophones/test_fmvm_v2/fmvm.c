@@ -43,16 +43,18 @@ int mvm_size(mvm* m)
 }
 
 /* Insert one key/value pair */
-void mvm_insert(mvm* m, char* key, char* data)
+void mvm_insert(mvm* m, char* key, char* data,int *time)
 {
     int address;
     mvmcell *new_cell;
+    *time = 0;
     if( m==NULL ||key ==NULL || data == NULL) {
         return;
     }
     address = hash_function(key);
     if(m->array[address].address ==NULLKEY){
         m->array[address].address = address;
+        *time =1;
     }
     new_cell = (mvmcell*)malloc(sizeof(mvmcell));
     new_cell->data = (char *)malloc(sizeof(char)*strlen(data)+sizeof(char));
@@ -72,11 +74,19 @@ int hash_function(char *key)
 {
     int len = strlen(key);
     int i;
+    unsigned int pow =1;
     int address ;
     unsigned  int raw_address = 0;
     for(i=0;i<len;i++){
-        raw_address += (key[i]-'a'-1)*(int)pow((double)ALPHABLET,(double)i);
 
+        if(key[i]>='A'&&key[i]<='Z'){
+            raw_address += (unsigned int)(key[i]-'A')*pow;
+        }else if(key[i]>='a'&&key[i]<='z'){
+            raw_address += (unsigned int)(key[i]-'a')*pow;
+        }else{
+            raw_address += (unsigned int)(key[i])*pow;
+        }
+        pow *= ALPHABLET;
     }
 
     address = raw_address %HASHSIZE;
@@ -146,7 +156,7 @@ void mvm_delete(mvm* m, char* key)
 }
 
 /* Return the corresponding value for a key */
-char* mvm_search(mvm* m, char* key)
+char* mvm_search(mvm* m, char* key,int *time)
 {
     int address;
     mvmcell *current;
@@ -154,13 +164,14 @@ char* mvm_search(mvm* m, char* key)
         return NULL;
     }
     address = hash_function(key);
-
+    *time = 1;
     if(m->array[address].address == NULLKEY){
         return NULL;
     }
     current = m->array[address].next;
     while(current !=NULL && strcmp(current->key,key) != 0){
         current =current->next;
+        (*time)++;
     }
     if(current ==NULL){
         return NULL;
@@ -170,12 +181,13 @@ char* mvm_search(mvm* m, char* key)
 }
 
 /* Return *argv[] list of pointers to all values stored with key, n is the number of values */
-char** mvm_multisearch(mvm* m, char* key, int* n)
+char** mvm_multisearch(mvm* m, char* key, int* n,int *time)
 {
     char **a;
     int index = 0;
     int address;
     mvmcell *current;
+    *time = 0;
     if(m == NULL ||key == NULL || n == NULL){
         return NULL;
     }
@@ -195,7 +207,9 @@ char** mvm_multisearch(mvm* m, char* key, int* n)
             index++;
         }
         current = current->next;
+        (*time)++;
     }
+    *time = (*time/index);
     return a;
 }
 

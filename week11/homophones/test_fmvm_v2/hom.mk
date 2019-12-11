@@ -1,14 +1,14 @@
-CFLAGS = -O2 -Wall -Wextra -Werror -Wfloat-equal -pedantic -ansi
-DFLAGS = -g3 -Wall -Wextra -Werror -Wfloat-equal -pedantic -ansi
+CFLAGS = -O2 -Wall -Wextra -Werror -Wfloat-equal -pedantic -ansi -lm
+DFLAGS = -g3 -Wall -Wextra -Werror -Wfloat-equal -pedantic -ansi -lm
 SFLAGS = -g3 -fsanitize=undefined -fsanitize=address
 TESTBASE = homophones
-INCS = mvm.h
-SOURCES =  $(TESTBASE).c mvm.c
+INCS = fmvm.h
+SOURCES =  $(TESTBASE).c fmvm.c
 EXECS = $(TESTBASE) $(TESTBASE)_d $(TESTBASE)_s homophone
 CC = clang
 
 run: $(TESTBASE)
-	./$(TESTBASE) -n 2 CHRISTMAS PROGRAM PASSING RHYME BOY DOLLARS KILMARNOCK GODDESS EQUALIZER
+	./$(TESTBASE) -n 4 PASSING PROGRAM CHRISTMAS BOY MUSTANG
 
 all: $(EXECS)
 

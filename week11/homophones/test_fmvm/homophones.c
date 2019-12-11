@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "mvm.h"
+#include "fmvm.h"
 
 #define FILENAME  "cmudict.txt"
 #define NULL_N -1
@@ -37,7 +37,10 @@ int main(int argc, char **argv)
     int n_index = 0;
 
 
+
+
     words_array = parse_command(argc,argv,&words_count,&n_index,&n_from_command);
+
 
     find_result(words_array,words_count,n_from_command);
     free(words_array);
@@ -58,7 +61,9 @@ void find_result(char **words_array,int words_count, int n_from_command)
     if(n_from_command == NULL_N){
         for(i=0;i<words_count;i++){
             n_real = get_n_real(words_array[i]);
+
             read_in(map_one,map_two,n_real);
+
             phonemes = mvm_search(map_one,words_array[i]);
             words = mvm_multisearch(map_two,phonemes, &words_number);
             printf("%s(%s): ",words_array[i],phonemes);
@@ -73,6 +78,7 @@ void find_result(char **words_array,int words_count, int n_from_command)
         mvm_free(&map_two);
     }else{
         read_in(map_one,map_two,n_from_command);
+
         for(i=0;i<words_count;i++){
             phonemes = mvm_search(map_one,words_array[i]);
             words = mvm_multisearch(map_two,phonemes, &words_number);
@@ -247,11 +253,15 @@ void read_in(mvm *map_one, mvm *map_two,int n)
         fprintf(stderr,"failed to open file...\n");
         exit(EXIT_FAILURE);
     }
+
     while(!feof(fp)){
         read_str(fp,str1,str2);
+
         str3= find_n_phonemes(str2,n);
+
         mvm_insert(map_one, str1, str3);
         mvm_insert(map_two, str3, str1);
+
         free(str3);
         reinit_array(str1,strlen(str1));
         reinit_array(str2,strlen(str2));

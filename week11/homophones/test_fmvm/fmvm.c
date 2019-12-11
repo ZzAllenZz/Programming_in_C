@@ -75,7 +75,7 @@ int hash_function(char *key)
     int address ;
     unsigned  int raw_address = 0;
     for(i=0;i<len;i++){
-        raw_address += (key[i]-'a'-1)*(int)pow((double)ALPHABLET,(double)i);
+        raw_address += (unsigned int)(key[i]-'A'-1)*(unsigned int)pow((double)ALPHABLET,(double)i);
 
     }
 

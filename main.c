@@ -21,6 +21,32 @@ int main(void)
     int insert_key;
     int search_key;
     int search_result;
+
+    unsigned int what;
+    int how;
+
+    unsigned int a = 1000;
+    int b = -1;
+
+    a = (unsigned int) b;
+    printf("a is %u",a);
+    return 0;
+    what = 1;
+    printf("what is %d\n",what);
+    what = -12;
+    printf("what is %d\n",what);
+    printf("what is %u\n",what);
+/*    what +=15;*/
+    printf("what is %d\n",what);
+    printf("what is %u\n",what);
+
+
+     how  = -15;
+    printf("how is %d\n",how);
+
+    how = what %7;
+    printf("how is %d\n",how);
+
     init_hashtable(H);
     printf("-----store in hashtable-----\n");
     printf("enter the data you want to store(-1 for exit!):\n");
