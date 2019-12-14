@@ -4,14 +4,26 @@
 #include <string.h>
 #include "mvm.h"
 
-#define FILENAME  "cmudict.txt"
-#define NULL_N -1
-#define SHIFTING 10
-#define SHIFT_ONE 1
-#define SHIFT_THREE 3
-#define WORD_MAX 50
-#define HOMOPHONES_MAX 150
+/*This programme can be divided into three main parts
+ *1.Parse the command line;
+ *2.Read strings from dictionary and insert key/value into two maps;
+ *3.Search the words by using two maps;
+ * */
 
+/*Explanation for result:
+ *1.if there is no -n in command, for each word, its total actual
+ * number of phonemes will be used. e.g.BOY->B OY1, CHRISTMAS->K R IH1 S M AH0 S
+ *2.if there is a -n, n's value will be used, and in the case of n's value
+ * > number of phonemes, result is undefined.
+ * */
+#define FILENAME  "cmudict.txt"
+#define NULL_N -1 /*Means no n in command*/
+#define MULTI_TEN 10 /*Used in the case n's value >=10 */
+#define ZERO '0'
+#define SHIFT_ONE 1 /*Used when calculate number of words in command line*/
+#define SHIFT_THREE 3/*Used when calculate number of words in command line*/
+#define WORD_MAX 50 /*the max number of one word*/
+#define HOMOPHONES_MAX 150 /*the max number of one word's phonemes*/
 
 
 char **parse_command(int argc, char **argv, int *words_count,int *n_index,int *n);
@@ -31,10 +43,10 @@ void read_str(FILE *fp,char str1[],char str2[]);
 int main(int argc, char **argv)
 {
 
-    char **words_array;
-    int words_count = 0;
-    int n_from_command = 0;
-    int n_index = 0;
+    char **words_array;/*Used to store words from command line*/
+    int words_count = 0;/*Used to count how many words in command line*/
+    int n_index = 0; /*the location of number in command line*/
+    int n_from_command = 0;/*the value of number in command line*/
 
 
     words_array = parse_command(argc,argv,&words_count,&n_index,&n_from_command);
@@ -45,6 +57,13 @@ int main(int argc, char **argv)
     return 0;
 }
 
+/*find_result_without_n and find_result_with_n are different, and cannot put them into one function
+ * because:
+ * 1.without n: for each words from command, we need to re-read file, again and again,
+ * since they have different number of phonemes;
+ * 2.with n: we just need read file once,
+ * since we fixed the n phonemes;
+ * */
 
 void find_result(char **words_array,int words_count, int n_from_command)
 {
@@ -57,6 +76,7 @@ void find_result(char **words_array,int words_count, int n_from_command)
     mvm *map_two = mvm_init();
     if(n_from_command == NULL_N){
         for(i=0;i<words_count;i++){
+            /*n real means the word's actual number of phonemes*/
             n_real = get_n_real(words_array[i]);
             read_in(map_one,map_two,n_real);
             phonemes = mvm_search(map_one,words_array[i]);
@@ -74,6 +94,7 @@ void find_result(char **words_array,int words_count, int n_from_command)
     }else{
         read_in(map_one,map_two,n_from_command);
         for(i=0;i<words_count;i++){
+
             phonemes = mvm_search(map_one,words_array[i]);
             words = mvm_multisearch(map_two,phonemes, &words_number);
             printf("%s(%s): ",words_array[i],phonemes);
@@ -86,6 +107,12 @@ void find_result(char **words_array,int words_count, int n_from_command)
     return;
 }
 
+/*Parse the command line,includes:
+ * 1.whether it has -n and n's value;
+ * 2.store n's value and its index;
+ * 3.how many words we need to deal with in next step;
+ * 4.store these words into words_array;
+ * */
 char **parse_command(int argc, char **argv, int *words_count,int *n_index,int *n)
 {
     char **words_array;
@@ -93,7 +120,7 @@ char **parse_command(int argc, char **argv, int *words_count,int *n_index,int *n
         fprintf(stderr,"ERROR,TRY:%s <word>\n",argv[0]);
         exit(EXIT_FAILURE);
     }
-
+    /*NULL_N(-1) represents no -n and n's value in command */
     *n_index = find_n_index(argc,argv);
 
     *n = find_n_in_command(argv,*n_index);
@@ -151,7 +178,7 @@ int find_n_in_command(char **argv,int n_index)
     len = strlen(argv[n_index]);
     for(i=0;i<len;i++){
         if(i!=0){
-            n *=SHIFTING;
+            n *=MULTI_TEN;
         }
         n += argv[n_index][i]-'0';
     }
@@ -206,6 +233,7 @@ int get_n_real(char *key)
     return NULL_N;
 }
 
+/*Split one line in dictionary into two strings by '#' */
 void read_str(FILE *fp,char str1[],char str2[])
 {
     int j,k,i;
@@ -223,7 +251,7 @@ void read_str(FILE *fp,char str1[],char str2[])
 
 
 
-
+/*Calculate total number of space in one str*/
 int find_space_number(char str[])
 {
     int space_number = 0;
@@ -285,6 +313,9 @@ char *find_n_phonemes(char str[],int n)
     if(n>count){
         return NULL;
     }
+
+    /*n is the number of phonemes we need*/
+    /*wait is the number of space we need to wait before we read in*/
     wait = count - n;
     result = (char *)calloc(50,sizeof(char));
     for(i=0;i<len;i++){

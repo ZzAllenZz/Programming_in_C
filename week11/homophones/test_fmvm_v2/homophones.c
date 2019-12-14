@@ -88,7 +88,7 @@ void find_result(char **words_array,int words_count, int n_from_command)
                 print_words(words,words_number);
                 free(words);
             }else{
-                printf("%s: undefined\n ",words_array[i]);
+                printf("%s: undefined\n",words_array[i]);
             }
 
         }

@@ -5,13 +5,10 @@
 
 #include "mvm.h"
 
-/*question:
- * 1.the max size of data and key?
- * 2.the max map? because print str and multiplesearch str !!!
- * */
+
 mvm *mvm_init(void)
 {
-    mvm *m = (mvm *)calloc(1,sizeof(mvm));
+    mvm *m = (mvm *)malloc(sizeof(mvm));
     m->head = NULL; /*important!*/
     m->numkeys = 0;
     return m;
@@ -19,7 +16,7 @@ mvm *mvm_init(void)
 
 int mvm_size(mvm* m)
 {
-    if(m ==NULL){
+    if(m == NULL){
         return 0;
     }
     return m->numkeys;
@@ -28,13 +25,14 @@ int mvm_size(mvm* m)
 /* Insert one key/value pair */
 void mvm_insert(mvm* m, char* key, char* data)
 {
-    mvmcell *cell = (mvmcell *)calloc(1,sizeof(mvmcell));
+    mvmcell *cell = (mvmcell *)malloc(sizeof(mvmcell));
     if(m==NULL||key == NULL||data ==NULL){
+        free(cell);
         return;
     }
-    /*before strcpy, we must malloc or calloc to cell->data etc!*/
-    cell->data = calloc(10, sizeof(char));
-    cell->key = calloc(10, sizeof(char));
+
+    cell->data = (char *)malloc(sizeof(char)*strlen(data)+sizeof(char));
+    cell->key = (char *)malloc(sizeof(char)*strlen(key)+sizeof(char));
     strcpy(cell->key,key);
     strcpy(cell->data,data);
     cell->next = m->head;
@@ -47,17 +45,19 @@ char* mvm_print(mvm* m)
 {
     if(m != NULL){
         mvmcell *temp = m->head;
-        char *str = (char *)malloc(10000*sizeof(char));
+        char *str = (char *)calloc(1,sizeof(char));
         int offset = 0;
+        
         while(temp != NULL){
+            str = (char *)realloc(str,(strlen(str)+strlen(temp->key)+strlen(temp->data)\
+            +strlen("[]() "))*sizeof(char)+sizeof(char));
+            offset += sprintf(str+offset,"[%s](%s) ",temp->key,temp->data);
 
-           offset += sprintf(str+offset,"[%s](%s) ",temp->key,temp->data);
             temp = temp->next;
         }
         return str;
     }
     return  NULL;
-
 }
 
 /* Remove one key/value */
@@ -65,25 +65,27 @@ void mvm_delete(mvm* m, char* key)
 {
     if(m!=NULL&& key != NULL){
         mvmcell *temp = m->head;
+        mvmcell *swap;
         if(strcmp(temp->key,key)==0){
 
             m->head = m->head->next;
             m->numkeys--;
+            free(temp->data);
+            free(temp->key);
+            free(temp);
             return;
         }
-
-        while(temp->next != NULL && strcmp(temp->next->key,key)!=0){ /*why cannot exchange*/
-
-            /*why we cannot exchange?
-             * reason: we must firstly judge whether temp->next is null,
-             * if it is null, strcmp(temp->next->key,key) is crashed!
-             * */
+        while(temp->next != NULL && strcmp(temp->next->key,key)!=0){ /*cannot exchange*/
             temp = temp->next;
         }
         if(temp->next == NULL){
             return;
         }
+        swap = temp->next;
         temp->next = temp->next->next;
+        free(swap->data);
+        free(swap->key);
+        free(swap);
         m->numkeys--;
     }
 }
@@ -96,11 +98,9 @@ char* mvm_search(mvm* m, char* key)
 
         while(temp != NULL && strcmp(temp->key,key)!=0 ){/*why???*/
             temp = temp ->next;
-
         }
 
         if(temp == NULL){
-
             return NULL;
         }
         return temp->data;
@@ -111,21 +111,19 @@ char* mvm_search(mvm* m, char* key)
 /* Return *argv[] list of pointers to all values stored with key, n is the number of values */
 char** mvm_multisearch(mvm* m, char* key, int* n)
 {
-    if(m !=NULL&& key!=NULL&&n != NULL){
+    if(m !=NULL&& key!=NULL&& n != NULL){
         char **a;
-        int i= 0;
         int index = 0;
         mvmcell *temp = m->head;
         *n = 0;
-        a = (char **)calloc(2000, sizeof(char *));
-        for(i=0;i<2000;i++){
-            a[i] =(char *) calloc(1000, sizeof(char));
-        }
+        a = (char **)malloc(sizeof(char *));
+    
         while(temp!=NULL){
             if(strcmp(temp->key,key)==0){
-                strcpy(a[index],temp->data);
-                index ++;
                 (*n)++;
+                a = (char **)realloc(a,(*n)* sizeof(char *));
+                a[index] = temp->data;
+                index ++;      
             }
             temp = temp ->next;
         }
@@ -134,28 +132,32 @@ char** mvm_multisearch(mvm* m, char* key, int* n)
     return NULL;
 }
 
-void free_linked_list(mvmcell *head)
+void free_linked_list(mvmcell **head)
 {
     if(head !=NULL){
-        mvmcell *current = head;
-        mvmcell *previous = NULL;
-        while(current->next != NULL){
-            previous = current;
-            current = current->next;
-            free(previous->next);
-            free(previous->key);
-            free(previous->data);
+        mvmcell *current = *head;
+        mvmcell *next;
+        while(current != NULL){
+            next = current->next;
+            free(current->data);
+            free(current->key);
+            free(current);
+            current = next;
         }
-        free(previous);
-        free(current);
+        *head = NULL;
     }
 }
+
 /* Free & set p to NULL */
 void mvm_free(mvm** p)
 {
-    free_linked_list((*p)->head);
-    free((*p)->head);
-    free(*p);
+    mvm *a;
+    if( p ==NULL || *p == NULL){
+        return;
+    }
+    a = *p;
+    free_linked_list(&(a->head));
+    free(a);
     *p =NULL;
 }
 

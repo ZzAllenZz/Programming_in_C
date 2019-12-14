@@ -2,15 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <math.h>
 
 #include "fmvm.h"
 
 #define NULLKEY -1
 #define ALPHABLET 26
 
+/*Used to free one mvmcell in linked list */
+void free_one_cell(mvmcell **cell);
+/*Used to free the whole mvmcell's linked list */
+void free_linked_list(mvmcell **head);
 void array_init(mvmcell array[HASHSIZE]);
 int hash_function(char *key);
+
 
 mvm *mvm_init(void)
 {
@@ -72,11 +76,19 @@ int hash_function(char *key)
 {
     int len = strlen(key);
     int i;
+    unsigned int pow =1;
     int address ;
     unsigned  int raw_address = 0;
     for(i=0;i<len;i++){
-        raw_address += (key[i]-'a'-1)*(int)pow((double)ALPHABLET,(double)i);
 
+        if(key[i]>='A'&&key[i]<='Z'){
+            raw_address += (unsigned int)(key[i]-'A')*pow;
+        }else if(key[i]>='a'&&key[i]<='z'){
+            raw_address += (unsigned int)(key[i]-'a')*pow;
+        }else{
+            raw_address += (unsigned int)(key[i])*pow;
+        }
+        pow *= ALPHABLET;
     }
 
     address = raw_address %HASHSIZE;
@@ -125,9 +137,7 @@ void mvm_delete(mvm* m, char* key)
     if(strcmp(current->key,key)==0){
         m->array[address].next =current->next;
         m->numkeys--;
-        free(current->data);
-        free(current->key);
-        free(current);
+        free_one_cell(&current);
         return;
     }
     while(current->next != NULL && strcmp(current->next->key,key)!=0){ /*cannot exchange*/
@@ -138,11 +148,23 @@ void mvm_delete(mvm* m, char* key)
     }
     temp = current->next;
     current->next = current->next->next;
+    free_one_cell(&temp);
+    m->numkeys--;
+    return;
+}
+
+/*Used to free one mvmcell in linked list */
+void free_one_cell(mvmcell **cell)
+{
+    mvmcell *temp;
+    if(cell == NULL || *cell ==NULL){
+        return;
+    }
+    temp = *cell;
     free(temp->data);
     free(temp->key);
     free(temp);
-    m->numkeys--;
-    return;
+    *cell = NULL;
 }
 
 /* Return the corresponding value for a key */
@@ -154,7 +176,6 @@ char* mvm_search(mvm* m, char* key)
         return NULL;
     }
     address = hash_function(key);
-
     if(m->array[address].address == NULLKEY){
         return NULL;
     }
@@ -163,7 +184,7 @@ char* mvm_search(mvm* m, char* key)
         current =current->next;
     }
     if(current ==NULL){
-        return NULL;/*Cannot find such key/value pair*/
+        return NULL;
     }
     return current->data;
 
@@ -201,18 +222,18 @@ char** mvm_multisearch(mvm* m, char* key, int* n)
 
 void free_linked_list(mvmcell **head)
 {
-    if(head !=NULL){
-        mvmcell *current = *head;
-        mvmcell *next;
-        while(current != NULL){
-            next = current->next;
-            free(current->data);
-            free(current->key);
-            free(current);
-            current = next;
-        }
-        *head = NULL;
+    mvmcell *current;
+    mvmcell *next;
+    if(head == NULL||*head == NULL){
+        return;
     }
+    current = *head;
+    while(current != NULL){
+        next = current->next;
+        free_one_cell(&current);
+        current = next;
+    }
+    *head = NULL;
 }
 /* Free & set p to NULL*/
 void mvm_free(mvm** p)
