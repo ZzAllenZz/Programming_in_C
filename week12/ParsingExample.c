@@ -28,6 +28,11 @@ int main(void)
     for(i=0;i<MAXNUMTOKENS;i++){
         prog.wds[i][0]='\0';
     }
+    if( !(fp = fopen(PROGRAM,"r"))){
+        fprintf(stderr,"Cannot open %s\n",PROGRAM);
+        exit(2);
+    }
+
     i=0;
     while(fscanf(fp,"%s",prog.wds[i++])==1 && i<MAXNUMTOKENS);
     assert(i<MAXNUMTOKENS);
@@ -41,6 +46,7 @@ void Prog(Program *p)
     if(!strsame(p->wds[p->cw],"BEGIN")){
         ERROR("Cannot find BEGIN statement in begin...\n");
     }
+    fprintf(stdout,"%s\n",p->wds[p->cw]);
     p->cw++;
     Code(p);
 }
@@ -48,6 +54,7 @@ void Prog(Program *p)
 void Code(Program *p)
 {
     if(strsame(p->wds[p->cw],"END")){
+        fprintf(stdout,"%s\n",p->wds[p->cw]);
         return;
     }
     Statement(p);
@@ -58,9 +65,11 @@ void Code(Program *p)
 void Statement(Program *p)
 {
     if(strsame(p->wds[p->cw],"ONE")){
+        fprintf(stdout,"%s\n",p->wds[p->cw]);
         return;
     }
     if(strsame(p->wds[p->cw],"NOUGHT")){
+        fprintf(stdout,"%s\n",p->wds[p->cw]);
         return;
     }
     ERROR("Expect a ONE or NOUGHT");
