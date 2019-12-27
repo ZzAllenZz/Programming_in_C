@@ -1,5 +1,5 @@
 {
 
-   PRINT "Hello World! From test1"
+   PRINTN "Hello World! From test1"
 
 }
