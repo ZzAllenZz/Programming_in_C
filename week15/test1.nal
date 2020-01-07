@@ -1,5 +1,7 @@
 {
 
-   PRINTN "Hello World! From test1"
-
+	PRINT "WHAT A FUCK"
+	PRINT "WHY"
+	PRINT %AAA
+	PRINT $BBB
 }
