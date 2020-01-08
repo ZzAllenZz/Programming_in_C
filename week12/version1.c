@@ -5,10 +5,10 @@
 
 
 #define DEFAULTSIZE  20
-#define REQUIRED 2 /*required arguments in command line*/
 #define OFFSET 1
 
-#define strsame(A,B) (strcmp((A),(B))==0)
+#define strsame(A,B) \
+(strcmp((A),(B))==0)
 #define ERROR(PHRASE) {\
 fprintf(stderr,"Fatal Error: %s occured in %s, line %d\n",\
 PHRASE,__FILE__,__LINE__);\
@@ -23,12 +23,11 @@ struct program{
 
 typedef struct program Program;
 
-void check_argc(int argc);
+
 void init_program(Program *p);
 void free_program(Program *p);
 
 void input_in_array(Program *p,char *filename);
-void whether_print(FILE *fp,Program *p);
 void read_print_content(FILE *fp,Program *p);
 void interp_print(Program *p);
 
@@ -40,18 +39,19 @@ int main(int argc,char **argv)
 {
 
     Program p;
-    int i;
-/*    mvm *m;*/
+    if(argc != 2 ){
+        ERROR("Required one and only one file name in command line")
+    }
 
-    check_argc(argc);
-/*    m = mvm_init();*/
     init_program(&p);
     input_in_array(&p,argv[OFFSET]);
-
+/*
     printf("p.count = %d\n",p.count);
     for(i=0;i<p.count;i++){
         printf("%s\n",p.array[i]);
     }
+*/
+
 
     Prog(&p);
     printf("Parsed OK!\n");
@@ -67,18 +67,6 @@ void init_program(Program *p)
     p->count=0;
     p->array = (char **)malloc(sizeof(char *));
     p->array[p->count]= (char *)calloc(DEFAULTSIZE, sizeof(char));
-    if(p->array==NULL ||p->array[p->count]==NULL){
-        ERROR("Cannot allocate memory");
-    }
-}
-void check_argc(int argc)
-{
-    if(argc<REQUIRED){
-        ERROR("Too few arguments in command line");
-    }
-    if(argc>REQUIRED){
-        ERROR("Too many arguments in command line");
-    }
 }
 
 void free_program(Program *p)
@@ -100,10 +88,16 @@ void input_in_array(Program *p,char *filename)
 
     while(fscanf(fp,"%s",p->array[p->count])==1){
 
-
-        whether_print(fp,p);
+        if(strsame(p->array[p->count],"PRINT")||strsame(p->array[p->count],"PRINTN")){
+            p->count++;
+            p->array = (char **)realloc(p->array,(p->count+1)*sizeof(char*));
+            if(p->array==NULL){
+                ERROR("ERROR");
+            }
+            read_print_content(fp,p);
+        }
         p->count++;
-        p->array = (char **)realloc(p->array,(p->count+OFFSET)*sizeof(char*));
+        p->array = (char **)realloc(p->array,(p->count+1)*sizeof(char*));
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
         if(p->array==NULL){
             ERROR("ERROR");
@@ -111,22 +105,10 @@ void input_in_array(Program *p,char *filename)
     }
     fclose(fp);
 }
-void whether_print(FILE *fp,Program *p)
-{
-    if(!strsame(p->array[p->count],"PRINT")&&!strsame(p->array[p->count],"PRINTN")){
-        return;
-    }
-    p->count++;
-    p->array = (char **)realloc(p->array,(p->count+OFFSET)*sizeof(char*));
-    if(p->array==NULL){
-        ERROR("Cannot allocate memory");
-    }
-    read_print_content(fp,p);
 
-}
-void read_print_content(FILE *fp,Program *p) /*想办法，保证，后"or 后# 的出现*/
+void read_print_content(FILE *fp,Program *p) /*��취����֤����"or ��# �ĳ���*/
 {
-    int c;
+    int c=1;
     int i=0;
     char *str = (char *)calloc(2,sizeof(char));
 
@@ -135,17 +117,14 @@ void read_print_content(FILE *fp,Program *p) /*想办法，保证，后"or 后# 
             ERROR("Expect \" or # or % or $ after PRINT or PRINTN ");
         }
     };
-    
-    str[i++] =c;
-    if(c == '%' ||c == '$'){
-        while((c=getc(fp))!=' '&& c!= '\n'&& c!=EOF){
-            str = (char *)realloc(str,(strlen(str)+2)* sizeof(char));
-            str[i++]=c;
-            str[i]='\0';
-        }
-        p->array[p->count] = str;
+
+    if(c== '%' ||c== '$'){
+        free(str);
+        p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
+        fscanf(fp,"%s",p->array[p->count]);
         return ;
     }
+    str[i++] =c;
     while((c=getc(fp))!='\"'&& c != '#'&& c!=EOF){
         str = (char *)realloc(str,(strlen(str)+2)* sizeof(char));
         str[i++]=c;
@@ -166,7 +145,7 @@ void read_print_content(FILE *fp,Program *p) /*想办法，保证，后"or 后# 
 void Prog(Program *p)
 {
     if(!strsame(p->array[p->cw],"{")){
-        ERROR("Cannot find { in beginning of file\n");
+        ERROR("Cannot find { in begin...\n");
     }
     p->cw++;
     Instrs(p);
@@ -196,15 +175,10 @@ void Instruct(Program *p)
 
 /*void check_print()
 {
-
 }*/
 
 void interp_print(Program *p)
 {
     printf("%s",p->array[p->cw]);
 }
-
-
-
-
 

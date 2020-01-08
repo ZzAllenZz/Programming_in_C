@@ -11,13 +11,13 @@ run: $(TESTBASE)
 
 all: $(EXECS)
 
-$(TESTBASE): $(SOURCES)
+$(TESTBASE): $(SOURCES) mvm.c mvm.h
 	$(CC) $(SOURCES) -o $@ $(CFLAGS) -DINTERP
 
-$(TESTBASE)_d: $(SOURCES)
+$(TESTBASE)_d: $(SOURCES) mvm.c mvm.h
 	$(CC) $(SOURCES) -o $@ $(DFLAGS) -DINTERP
 
-$(TESTBASE)_s: $(SOURCES)
+$(TESTBASE)_s: $(SOURCES) mvm.c mvm.h
 	$(CC) $(SOURCES) -o $@ $(SFLAGS) -DINTERP
 
 clean:
