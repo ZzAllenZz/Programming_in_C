@@ -4,12 +4,15 @@
    %B = 46463.33
    JUMP 1
    JUMP 5421
-   
+   PRINTN "SADA"
+   PRINT %A
+   PRINT .231
+   FILE "sda"
    IFEQUAL ( $A , "Arvyy" ) {
       PRINT "Uryyb Jbeyq!"
    }
    
-	PRINT "WHAT A FUCK#
+	PRINT "WHAT A FUCK"
 	PRINT "WHY"
 	PRINT %AAA
 	PRINT $BBB

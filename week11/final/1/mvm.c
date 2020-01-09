@@ -172,15 +172,15 @@ void free_linked_list(mvmcell **head)
 }
 
 /* Free & set p to NULL */
-void mvm_free(mvm** p)
+void mvm_free(mvm** m)
 {
     mvm *a;
-    if( p ==NULL || *p == NULL){
+    if( m ==NULL || *m == NULL){
         return;
     }
-    a = *p;
-    free_linked_list(&(a->head));
+    a = *m;
+    free_linked_list(&(m->head));
     free(a);
-    *p =NULL;
+    *m =NULL;
 }
 
