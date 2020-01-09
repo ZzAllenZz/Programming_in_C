@@ -1,6 +1,15 @@
 {
-
-	PRINT "WHAT A FUCK"
+   $A = "Neill"
+   %E = 12.4 
+   %B = 46463.33
+   JUMP 1
+   JUMP 5421
+   
+   IFEQUAL ( $A , "Arvyy" ) {
+      PRINT "Uryyb Jbeyq!"
+   }
+   
+	PRINT "WHAT A FUCK#
 	PRINT "WHY"
 	PRINT %AAA
 	PRINT $BBB
