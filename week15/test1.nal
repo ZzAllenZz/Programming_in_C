@@ -1,14 +1,14 @@
 {
-   $A = "Neill"
+   $N = "Neill"
    %E = 12.4 
-   %B = 46463.33
    JUMP 1
-   JUMP 5421
+   RND ( %A )
+   IN2STR ( $A , $B )
    PRINTN "SADA"
    PRINT %A
    PRINT .231
-   FILE "sda"
 
+   INNUM ( %GUESS )
       IFEQUAL ( $A , #Arvyy# ) {
       PRINT #Uryyb Jbeyq!#
    }
