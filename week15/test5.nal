@@ -7,6 +7,5 @@
    IFGREATER ( %C , 9 ) {
       ABORT
    }
-   JUMP 4
-
+   JUMP 4 
 }

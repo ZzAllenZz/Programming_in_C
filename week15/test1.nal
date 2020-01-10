@@ -8,10 +8,10 @@
    PRINT %A
    PRINT .231
    FILE "sda"
-   IFEQUAL ( $A , "Arvyy" ) {
-      PRINT "Uryyb Jbeyq!"
+
+      IFEQUAL ( $A , #Arvyy# ) {
+      PRINT #Uryyb Jbeyq!#
    }
-   
 	PRINT "WHAT A FUCK"
 	PRINT "WHY"
 	PRINT %AAA

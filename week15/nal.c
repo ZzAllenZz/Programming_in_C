@@ -40,15 +40,25 @@ void whether_setvar(FILE *fp,Program *p);
 void whether_ifcondition(FILE *fp,Program *p);
 void whether_file(FILE *fp, Program *p);
 void read_varcon(FILE *fp,Program *p);
-void read_var_or_num(FILE *fp,char *str,Program *p,int i);
-void read_str(FILE *fp,char *str,Program *p,int i,char flag);
+void read_var_or_numcon(FILE *fp,char *str,Program *p,int i);
+void read_strcon(FILE *fp,char *str,Program *p,int i,char flag);
 
 void interp_print(Program *p);
 
-void parse_set_variable(Program *p);
-void parse_ifcondition(Program *p);
-void parse_jump(Program *p);
 void parse_file(Program *p);
+void parse_in2str(Program *p);
+void parse_innum(Program *p);
+void parse_jump(Program *p);
+void parse_print(Program *p);
+void parse_rnd(Program *p);
+void parse_ifcondition(Program *p);
+void parse_inc(Program *p);
+void parse_set_variable(Program *p,char flag);
+
+void check_strcon(Program *p);
+void check_numcon(Program *p);
+void check_var(Program *p,char flag);
+
 
 void Prog(Program *p);
 void Instrs(Program *p);
@@ -208,8 +218,6 @@ void whether_file(FILE *fp, Program *p) /*可以用read_varcon吗,可以，之�
     resize_array(p);
     read_varcon(fp,p);
 }
-
-
 void read_varcon(FILE *fp,Program *p) /*想办法，保证，后"or 后# 的出现,并且要对应*/
 {
     int c;
@@ -225,16 +233,17 @@ void read_varcon(FILE *fp,Program *p) /*想办法，保证，后"or 后# 的出�
     }
     str[i++] =c;
     if(c == '%' ||c == '$'||(c>='0'&&c<='9')||c == '.'){
-        read_var_or_num(fp,str,p,i);
+        read_var_or_numcon(fp,str,p,i);
         /*free(str);*/
         /*不需要再free str 因为 指针指向的是堆，当read_var_or_num函数中reallocate，原来这块地方已经free了*/
     }else if(c=='#'||c == '\"'){
-        read_str(fp,str,p,i,c);
+        read_strcon(fp,str,p,i,c);
     }else{
         ERROR_1("Illegal input for VARCON");
     }
 }
-void read_var_or_num(FILE *fp,char *str,Program *p,int i)
+
+void read_var_or_numcon(FILE *fp,char *str,Program *p,int i)
 {
     int c;
     while((c=getc(fp))!=' '&& c!= '\n'&& c!=EOF){
@@ -245,7 +254,7 @@ void read_var_or_num(FILE *fp,char *str,Program *p,int i)
     p->array[p->count] = str;
 
 }
-void read_str(FILE *fp,char *str,Program *p,int i,char flag)
+void read_strcon(FILE *fp,char *str,Program *p,int i,char flag)
 {
     int c;
     while((c=getc(fp))!= '\"'&&c != '#' && c!=EOF){
@@ -265,7 +274,7 @@ void read_str(FILE *fp,char *str,Program *p,int i,char flag)
 void Prog(Program *p)
 {
     if(!strsame(p->array[p->cw],"{")){
-        ERROR_1("Cannot find { in beginning of file\n");
+        ERROR_2("Cannot find { in beginning of file",p->array[p->cw],p->cw);
     }
     p->cw++;
     Instrs(p);
@@ -283,15 +292,35 @@ void Instrs(Program *p)
 
 void Instruct(Program *p)
 {
-    if(strsame(p->array[p->cw],"PRINT")||strsame(p->array[p->cw],"PRINTN")){
-        p->cw++;
-        #ifdef INTERP
-        interp_print(p);
-        #endif
+
+    if(strsame(p->array[p->cw],"FILE")){
+        parse_file(p);
         return;
     }
-    if(p->array[p->cw][0]=='%' || p->array[p->cw][0] == '$'){
-        parse_set_variable(p);
+    if(strsame(p->array[p->cw],"ABORT")){
+        return;
+    }
+    if(strsame(p->array[p->cw],"IN2STR")){
+        parse_in2str(p);
+        return;
+    }
+    if(strsame(p->array[p->cw],"INNUM")){
+        parse_innum(p);
+        return;
+    }
+    if(strsame(p->array[p->cw],"JUMP")){
+        parse_jump(p);
+        return;
+    }
+    if(strsame(p->array[p->cw],"PRINT")||strsame(p->array[p->cw],"PRINTN")){
+        parse_print(p);
+/*        #ifdef INTERP
+        interp_print(p);
+        #endif*/
+        return;
+    }
+    if(strsame(p->array[p->cw],"RND")){
+        parse_rnd(p);
         return;
     }
     if(strsame(p->array[p->cw],"IFEQUAL")||strsame(p->array[p->cw],"IFGREATER")){
@@ -300,188 +329,163 @@ void Instruct(Program *p)
         Prog(p);
         return;
     }
-    if(strsame(p->array[p->cw],"JUMP")){
-        parse_jump(p);
+    if(strsame(p->array[p->cw],"INC")){
+        parse_inc(p);
         return;
     }
-    if(strsame(p->array[p->cw],"FILE")){
-        parse_file(p);
+    if(p->array[p->cw][FIRST]=='%' || p->array[p->cw][FIRST] == '$'){
+        parse_set_variable(p,p->array[p->cw][FIRST]);
         return;
     }
-    if(strsame(p->array[p->cw],"ABORT")){
-        p->cw++;
-        return;
-    }
-    if(strsame(p->array[p->cw],"IN2STR")){
-        return;
-    }
-    if(strsame(p->array[p->cw],"INNUM")){
-        return;
-    }
-    ERROR_1("Undefined instruction");
+
+    ERROR_2("Undefined instruction",p->array[p->cw],p->cw);
 }
 
-/*void check_print()
-{
 
-}*/
 
 void parse_file(Program *p) /*其他情况 已经在读文件时候考虑了*/
 {
     p->cw++;
-    if(p->array[p->cw][0] != '\"'&& p->array[p->cw][0] != '$'){
-        ERROR_2("Not a STRCON after FILE",p->array[p->cw],p->cw);
-    }
+    check_strcon(p);
 }
-void parse_input(Program *p)
-{
 
-}
 void parse_in2str(Program *p)
 {
     p->cw++;
-    if(!strsame(p->array[p->cw++],"(")){
+    if(!strsame(p->array[p->cw],"(")){
         ERROR_2("Expect a ( after IN2STR",p->array[p->cw],p->cw);
     }
-
-
-}
-/*void check_*/
-void parse_set_variable(Program *p)
-{
-    int i;
-    int temp;
-    int number=0;
-    temp = p->cw;
-    for(i=1;i<(int)strlen(p->array[p->cw]);i++){
-        if(p->array[p->cw][i]<'A'|| p->array[p->cw][i]>'Z'){
-            ERROR_1("Variable name must be [A-Z]+");
-        }
+    p->cw++;
+    check_var(p,'$');
+    p->cw++;
+    if(!strsame(p->array[p->cw],",")){
+        ERROR_2("Expect a \",\" after IN2STR \"(\" <STRVAR>",p->array[p->cw],p->cw);
     }
-    if(p->array[p->cw][0]=='$'){/*如果是多次声明呢？*/
-        mvm_insert(p->map,"STRVAR",p->array[p->cw++]);
-    }else{
-        mvm_insert(p->map,"NUMVAR",p->array[p->cw++]);
-    }
-    if(!strsame(p->array[p->cw++],"=")){
-        ERROR_1("Expect a \"=\" after a variable when setting")
-    }
-    if(p->array[temp][0]=='$'){
-        if(p->array[p->cw][0]!='\"'){
-            ERROR_1("Expect a \"" );
-        }
-        if(p->array[p->cw][strlen(p->array[p->cw])-1] !='\"'){
-            ERROR_1("Expect a \"" );
-        }
-    }else{
-        for(i=0;i<(int)strlen(p->array[p->cw]);i++){
-            if(p->array[p->cw][i] != '.'&&!(p->array[p->cw][i]>'0'&&p->array[p->cw][i]<'9')){
-                ERROR_1("Expect only digit and . ");
-            }
-            if(p->array[p->cw][i] == '.'){
-                number++;
-            }
-            if(number>1){
-                ERROR_1("Only one . should have");
-            }
-        }
+    p->cw++;
+    check_var(p,'$');
+    p->cw++;
+    if(!strsame(p->array[p->cw],")")){
+        ERROR_2("Expect a \")\" to finish IN2STR",p->array[p->cw],p->cw);
     }
 }
-
-void parse_ifcondition(Program *p)
+void parse_innum(Program *p)
 {
-    int i;
-    int number = 0;
     p->cw++;
     if(!strsame(p->array[p->cw],"(")){
-        ERROR_2("Expect a \"=\" after IFCOND",p->array[p->cw],p->cw);
+        ERROR_2("Expect a ( after IN2STR",p->array[p->cw],p->cw);
     }
     p->cw++;
-    if(p->array[p->cw][0]=='$'||p->array[p->cw][0]=='%'){
-        for(i=1;i<strlen(p->array[p->cw]);i++){
-            if(p->array[p->cw][i]<'A'||p->array[p->cw][i]>'Z'){
-                ERROR_2("VAR must be capitalised",p->array[p->cw],p->cw);
-            }
+    check_var(p,'%');
+    p->cw++;
+    if(!strsame(p->array[p->cw],")")){
+        ERROR_2("Expect a \")\" to finish INNUM",p->array[p->cw],p->cw);
+    }
+}
+void parse_jump(Program *p)
+{
+    int i;
+    int len;
+    p->cw++;
+    check_numcon(p);
+    len = (int)strlen(p->array[p->cw]);
+    for(i=0;i<len;i++){
+        if(p->array[p->cw][i]=='.'){
+            ERROR_2("Must be a INT NUM after JUMP",p->array[p->cw],p->cw);
         }
-        if(mvm_search(p->map,p->array[p->cw])==NULL){
-            ERROR_2("Cannot use before declaim",p->array[p->cw],p->cw);
-        }
-    }else{/*还有数字的形式没考虑*/
-        /*读文件时候已经考虑*/
+    }
+}
+void parse_print(Program *p)
+{
+    char flag;
+    p->cw++;
+    flag = p->array[p->cw][FIRST];
+    if(flag =='%'){
+        check_var(p,'%');
+    }else if (flag == '$'){
+        check_var(p,'$');
+    }else if (flag == '\"' || flag == '#'){
+        check_strcon(p);
+    }else{
+        check_numcon(p);
+    }
+}
+void parse_rnd(Program *p)/*和parse_innum 一样*/
+{
+    p->cw++;
+    if(!strsame(p->array[p->cw],"(")){
+        ERROR_2("Expect a \"(\" after RND",p->array[p->cw],p->cw);
+    }
+    p->cw++;
+    check_var(p,'%');
+    p->cw++;
+    if(!strsame(p->array[p->cw],")")){
+        ERROR_2("Expect a \")\" to finish RND",p->array[p->cw],p->cw);
+    }
+}
+void parse_ifcondition(Program *p)
+{
+    char flag;
+    p->cw++;
+    if(!strsame(p->array[p->cw],"(")){
+        ERROR_2("Expect a \"(\" after IFCOND",p->array[p->cw],p->cw);
+    }
+    p->cw++;
+    flag = p->array[p->cw][FIRST];
+    if(flag =='%'){
+        check_var(p,'%');
+    }else if (flag == '$'){
+        check_var(p,'$');
+    }else if (flag == '\"' || flag == '#'){
+        check_strcon(p);
+    }else{
+        check_numcon(p);
     }
     p->cw++;
     if(!strsame(p->array[p->cw],",")){
         ERROR_2("Expect a \",\" after First VARCON in IFCOND",p->array[p->cw],p->cw);
     }
     p->cw++;
-    if(p->array[p->cw][0]=='$'||p->array[p->cw][0]=='%'){
-        for(i=1;i<strlen(p->array[p->cw]);i++){
-            if(p->array[p->cw][i]<'A'||p->array[p->cw][i]>'Z'){
-                ERROR_2("VAR must be capitalised",p->array[p->cw],p->cw);
-            }
-        }
-        if(mvm_search(p->map,p->array[p->cw])==NULL){
-            ERROR_2("Cannot use before declaim",p->array[p->cw],p->cw);
-        }
+    flag = p->array[p->cw][FIRST];
+    if(flag =='%'){
+        check_var(p,'%');
+    }else if (flag == '$'){
+        check_var(p,'$');
+    }else if (flag == '\"' || flag == '#'){
+        check_strcon(p);
     }else{
-        /*读文件时候已经考虑*/
+        check_numcon(p);
     }
-
-
-
-
-
-
-
-
-
-
-/*
-    if(p->array[p->cw][0]=='$'){
-        if(mvm_search(p->map,"STRVAR")==NULL){
-            ERROR_1("Use before declaim");
-        }
-        p->cw++;
-        if(!strsame(p->array[p->cw++],",")){
-            ERROR_1("Expect a , here");
-        }
-        if(p->array[p->cw][0]!='\"'){
-            ERROR_1("Expect a \"" );
-        }
-        if(p->array[p->cw][strlen(p->array[p->cw])-1] !='\"'){
-            ERROR_1("Expect a \"" );
-        }
-    }else if(p->array[p->cw][0]=='%'){
-        if(mvm_search(p->map,"NUMVAR")==NULL){
-            ERROR_1("Use before declaim");
-        }
-        p->cw++;
-        if(strsame(p->array[p->cw++],",")){
-            ERROR_1("Expect a , here");
-        }
-        for(i=0;i<(int)strlen(p->array[p->cw]);i++){
-            if(p->array[p->cw][i] != '.'&&!(p->array[p->cw][i]>'0'&&p->array[p->cw][i]<'9')){
-                ERROR_1("Expect only digit and . ");
-            }
-            if(p->array[p->cw][i] == '.'){
-                number++;
-            }
-            if(number>1){
-                ERROR_1("Only one . should have");
-            }
-        }
-
-    }else{
-        ERROR_1("Wrong variable name");
-    }
-
     p->cw++;
     if(!strsame(p->array[p->cw],")")){
-        ERROR_1("Expect a )");
+        ERROR_2("Expect a \")\" to finish IFCOND",p->array[p->cw],p->cw);
     }
-
-*/
-
+}
+void parse_inc(Program *p)/*和parse_innum,parse_rnd 一样*/
+{
+    p->cw++;
+    if(!strsame(p->array[p->cw],"(")){
+        ERROR_2("Expect a \"(\" after INC",p->array[p->cw],p->cw);
+    }
+    p->cw++;
+    check_var(p,'%');
+    p->cw++;
+    if(!strsame(p->array[p->cw],")")){
+        ERROR_2("Expect a \")\" to finish INC",p->array[p->cw],p->cw);
+    }
+}
+void parse_set_variable(Program *p,char flag)
+{
+    check_var(p,flag);
+    p->cw++;
+    if(!strsame(p->array[p->cw],"=")){
+        ERROR_2("Expect a \"=\" to assign",p->array[p->cw],p->cw);
+    }
+    p->cw++;
+    if(flag == '%'){
+        check_numcon(p);
+    }else{
+        check_strcon(p);
+    }
 }
 
 
@@ -507,10 +511,10 @@ void check_numcon(Program *p)
     int i;
     int flag=0;
     for(i=0;i<len;i++){
-        if((p->array[p->cw][i]<'0'||p->array[p->cw][i]>'9')&&p->array[p->cw]!='.'){
+        if((p->array[p->cw][i]<'0'||p->array[p->cw][i]>'9')&&p->array[p->cw][i]!='.'){
             ERROR_2("Expect only digit or . in NUMCON",p->array[p->cw],p->cw);
         }
-        if(p->array[p->cw] =='.'){
+        if(p->array[p->cw][i] =='.'){
             flag++;
         }
         if(flag>1){
@@ -518,12 +522,12 @@ void check_numcon(Program *p)
         }
     }
 }
-void check_var(Program *p)
+void check_var(Program *p,char flag)
 {
     int len = (int)strlen(p->array[p->cw]);
     int i;
-    if(p->array[p->cw][FIRST]!='$'&&p->array[p->cw][FIRST]!='%'){
-        ERROR_2("Expect a % or $ to start var",p->array[p->cw],p->cw);
+    if(p->array[p->cw][FIRST] != flag){
+        ERROR_2("Expect a % or $ to start VAR",p->array[p->cw],p->cw);
     }
     for(i=1;i<len;i++){
         if(p->array[p->cw][i]<'A'||p->array[p->cw][i]>'Z'){
@@ -531,16 +535,7 @@ void check_var(Program *p)
         }
     }
 }
-void parse_jump(Program *p)
-{
-    int i;
-    p->cw++;
-    for(i=0;i<(int)strlen(p->array[p->cw]);i++){
-        if(p->array[p->cw][i]<'0'||p->array[p->cw][i]>'9'){
-            ERROR_1("Expect only digit after JUMP");
-        }
-    }
-}
+
 
 
 void interp_print(Program *p)
