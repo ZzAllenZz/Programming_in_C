@@ -15,10 +15,11 @@ int main (void)
            a, b);
     free(b);*/
 
-    char *str;
+    char *str = calloc(5,sizeof(char));
     printf("input a str\n");
     scanf("%s",str);
     printf("the str is %s",str);
+    free(str);
 
 
 

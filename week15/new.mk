@@ -26,7 +26,7 @@ clean:
 
 memleaks: $(TESTBASE)_d $(TESTBASE)_s
 	@echo "Sanitize :"
-	@./$(TESTBASE)_s test4.nal
+	@./$(TESTBASE)_s test1.nal
 	@echo "Valgrind :"
-	@valgrind --leak-check=full ./$(TESTBASE)_d test4.nal
+	@valgrind --leak-check=full ./$(TESTBASE)_d test1.nal
 

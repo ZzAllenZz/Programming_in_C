@@ -1,20 +1,8 @@
 {
-   $N = "Neill"
-   %E = 12.4 
-   JUMP 1
-   RND ( %A )
+   PRINT #In test1, before#
    IN2STR ( $A , $B )
-   PRINTN "SADA"
-   PRINT %A
-   PRINT .231
+   FILE "test2.nal"
+   PRINT "In test1, after"
 
-   INNUM ( %GUESS )
-      IFEQUAL ( $A , #Arvyy# ) {
-      PRINT #Uryyb Jbeyq!#
-   }
-	PRINT "WHAT A FUCK"
-	PRINT "WHY"
-	PRINT %AAA
-	PRINT $BBB
-	PRINT "WHO"
+
 }

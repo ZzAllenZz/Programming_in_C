@@ -12,6 +12,8 @@
 #define SECOND 1
 #define TWO 2
 #define RNDBASE 100
+#define ROT13 13
+#define ROT5 5
 #define strsame(A,B) (strcmp((A),(B))==0)
 #define ERROR_1(PHRASE) {\
 fprintf(stderr,"Fatal Error: %s occured in %s, line %d\n",\
@@ -31,10 +33,12 @@ typedef struct program{
     int cw;
 } Program;
 
-void check_argc(int argc);
 void init_program(Program *p);
 void free_program(Program *p);
+void check_argc(int argc);
+void check_allocate(char *str);
 void resize_array(Program *p);
+
 
 void input_in_array(Program *p,char *filename);
 void whether_print(FILE *fp,Program *p); /*要说明 是为了 space才这么复杂的处理*/
@@ -57,6 +61,7 @@ void parse_ifcondition(Program *p);
 void parse_inc(Program *p);
 void parse_set_variable(Program *p,char flag);
 
+void check_mark(Program *p, char* mark);
 void check_strcon(Program *p);
 void check_numcon(Program *p);
 void check_var(Program *p,char flag);
@@ -67,6 +72,11 @@ void interp_innum(Program *p);
 void interp_in2str(Program *p);
 void interp_file(Program *p);
 
+char *take_quota(char *content);
+char *translate_hashes(char *content);
+
+
+
 void Prog(Program *p);
 void Instrs(Program *p);
 void Instruct(Program *p);
@@ -75,7 +85,7 @@ int main(int argc,char **argv)
 {
 
     Program p;
-    int i;
+  /*  int i;*/
     char *str;
 
     check_argc(argc);
@@ -84,22 +94,24 @@ int main(int argc,char **argv)
 
     input_in_array(&p,argv[SECOND]);
 
-    printf("p.count = %d\n",p.count);
+/*    printf("p.count = %d\n",p.count);
     for(i=0;i<p.count;i++){
         printf("%s\n",p.array[i]);
-    }
-
+    }*/
+    #ifdef INTERP
     srand((unsigned)time(NULL));
+    #endif
     Prog(&p);
     printf("Parsed OK!\n");
 
-    str = mvm_print(p.map);
+ str = mvm_print(p.map);
     printf("%s\n",str);
     free(str);
 
     free_program(&p);
     return 0;
 }
+
 void init_program(Program *p)
 {
     p->cw=0;
@@ -114,15 +126,6 @@ void init_program(Program *p)
         ERROR_1("Cannot allocate memory");
     }
 }
-void check_argc(int argc)
-{
-    if(argc<REQUIRED){
-        ERROR_1("Too few arguments in command line");
-    }
-    if(argc>REQUIRED){
-        ERROR_1("Too many arguments in command line");
-    }
-}
 void free_program(Program *p)
 {
     int i;
@@ -133,7 +136,28 @@ void free_program(Program *p)
     mvm_free(&(p->map));
 
 }
-
+void check_argc(int argc)
+{
+    if(argc<REQUIRED){
+        ERROR_1("Too few arguments in command line");
+    }
+    if(argc>REQUIRED){
+        ERROR_1("Too many arguments in command line");
+    }
+}
+void check_allocate(char *str)
+{
+    if(str==NULL){
+        ERROR_1("Cannot allocate memory");
+    }
+}
+void resize_array(Program *p)
+{
+    p->array = (char **)realloc(p->array,(p->count+OFFSET)*sizeof(char*));
+    if(p->array==NULL){
+        ERROR_1("Cannot allocate memory");
+    }
+}
 
 void input_in_array(Program *p,char *filename)
 {
@@ -141,7 +165,6 @@ void input_in_array(Program *p,char *filename)
     if( !(fp = fopen(filename,"r"))){
         ERROR_1("Cannot open file");
     }
-
     while(fscanf(fp,"%s",p->array[p->count])==1){
         if(strlen(p->array[p->count])>=DEFAULTSIZE-OFFSET){
             ERROR_2("This instruction's length should be less than 19",\
@@ -154,19 +177,11 @@ void input_in_array(Program *p,char *filename)
         p->count++;
         resize_array(p);
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
-        if(p->array[p->count]==NULL){
-            ERROR_1("ERROR");
-        }
+        check_allocate(p->array[p->count]);
     }
     fclose(fp);
 }
-void resize_array(Program *p)
-{
-    p->array = (char **)realloc(p->array,(p->count+OFFSET)*sizeof(char*));
-    if(p->array==NULL){
-        ERROR_1("Cannot allocate memory");
-    }
-}
+
 void whether_print(FILE *fp,Program *p)
 {
     if(!strsame(p->array[p->count],"PRINT")&&!strsame(p->array[p->count],"PRINTN")){
@@ -186,9 +201,7 @@ void whether_setvar(FILE *fp,Program *p)
     p->count++;
     resize_array(p);
     p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
-    if(p->array[p->count]==NULL){
-        ERROR_1("Cannot allocate memory");
-    }
+    check_allocate(p->array[p->count]);
 
     if(fscanf(fp,"%s",p->array[p->count])!=1){
         ERROR_1("Need a closing } to finish file");
@@ -210,13 +223,10 @@ void whether_ifcondition(FILE *fp,Program *p)
         p->count++;
         resize_array(p);
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
-        if(p->array[p->count]==NULL){
-            ERROR_1("Cannot allocate memory");
-        }
+        check_allocate(p->array[p->count]);
         if(fscanf(fp,"%s",p->array[p->count])!=1){
-            ERROR_1("Need a closing { to finish file");
+            ERROR_1("Need a closing } to finish file");
         }
-
         p->count++;
         resize_array(p);
         read_varcon(fp,p);
@@ -231,14 +241,12 @@ void whether_file(FILE *fp, Program *p) /*可以用read_varcon吗,可以，之�
     resize_array(p);
     read_varcon(fp,p);
 }
-void read_varcon(FILE *fp,Program *p) /*想办法，保证，后"or 后# 的出现,并且要对应*/
+void read_varcon(FILE *fp,Program *p)
 {
     int c;
     int i = FIRST;
     char *str = (char *)calloc(TWO,sizeof(char));
-    if(str==NULL){
-        ERROR_1("Cannot allocate memory");
-    }
+    check_allocate(str);
 
     while((c=getc(fp))==' '&& c != EOF);
     if(c==EOF){
@@ -255,12 +263,12 @@ void read_varcon(FILE *fp,Program *p) /*想办法，保证，后"or 后# 的出�
         ERROR_1("Illegal input for VARCON");
     }
 }
-
 void read_var_or_numcon(FILE *fp,char *str,Program *p,int i)
 {
     int c;
     while((c=getc(fp))!=' '&& c!= '\n'&& c!=EOF){
         str = (char *)realloc(str,(strlen(str)+TWO)* sizeof(char));
+        check_allocate(str);
         str[i++]=c;
         str[i]='\0';
     }
@@ -272,6 +280,7 @@ void read_strcon(FILE *fp,char *str,Program *p,int i,char flag)
     int c;
     while((c=getc(fp))!= '\"'&&c != '#' && c!=EOF){
         str = (char *)realloc(str,(strlen(str)+TWO)* sizeof(char));
+        check_allocate(str);
         str[i++]=c;
         str[i]='\0';
     }
@@ -279,6 +288,7 @@ void read_strcon(FILE *fp,char *str,Program *p,int i,char flag)
         ERROR_1("Expect a matched closing \" or # to finish CON");
     }
     str = (char *)realloc(str,(strlen(str)+TWO)* sizeof(char));
+    check_allocate(str);
     str[i++]=c;
     str[i]='\0';
     p->array[p->count] = str;
@@ -292,7 +302,6 @@ void Prog(Program *p)
     p->cw++;
     Instrs(p);
 }
-
 void Instrs(Program *p)
 {
     if(strsame(p->array[p->cw],"}")){
@@ -302,7 +311,6 @@ void Instrs(Program *p)
     p->cw++;
     Instrs(p);
 }
-
 void Instruct(Program *p)
 {
 
@@ -311,6 +319,10 @@ void Instruct(Program *p)
         return;
     }
     if(strsame(p->array[p->cw],"ABORT")){
+        #ifdef INTERP
+        printf("Interpreted OK\n");
+        exit(0);
+        #endif
         return;
     }
     if(strsame(p->array[p->cw],"IN2STR")){
@@ -327,9 +339,9 @@ void Instruct(Program *p)
     }
     if(strsame(p->array[p->cw],"PRINT")||strsame(p->array[p->cw],"PRINTN")){
         parse_print(p);
-/*        #ifdef INTERP
+        #ifdef INTERP
         interp_print(p);
-        #endif*/
+        #endif
         return;
     }
     if(strsame(p->array[p->cw],"RND")){
@@ -354,168 +366,14 @@ void Instruct(Program *p)
     ERROR_2("Undefined instruction",p->array[p->cw],p->cw);
 }
 
-
-
-void parse_file(Program *p) /*其他情况 已经在读文件时候考虑了*/
+void check_mark(Program *p, char* mark)
 {
     p->cw++;
-    check_strcon(p);
-    #ifdef INTERP
-    interp_file(p);
-    #endif
-}
-
-void parse_in2str(Program *p)
-{
-    p->cw++;
-    if(!strsame(p->array[p->cw],"(")){
-        ERROR_2("Expect a ( after IN2STR",p->array[p->cw],p->cw);
-    }
-    p->cw++;
-    check_var(p,'$');
-    p->cw++;
-    if(!strsame(p->array[p->cw],",")){
-        ERROR_2("Expect a \",\" after IN2STR \"(\" <STRVAR>",p->array[p->cw],p->cw);
-    }
-    p->cw++;
-    check_var(p,'$');
-    p->cw++;
-    if(!strsame(p->array[p->cw],")")){
-        ERROR_2("Expect a \")\" to finish IN2STR",p->array[p->cw],p->cw);
-    }
-    #ifdef INTERP
-    interp_in2str(p);
-    #endif
-}
-void parse_innum(Program *p)
-{
-    p->cw++;
-    if(!strsame(p->array[p->cw],"(")){
-        ERROR_2("Expect a ( after IN2STR",p->array[p->cw],p->cw);
-    }
-    p->cw++;
-    check_var(p,'%');
-    p->cw++;
-    if(!strsame(p->array[p->cw],")")){
-        ERROR_2("Expect a \")\" to finish INNUM",p->array[p->cw],p->cw);
-    }
-    #ifdef INTERP
-    interp_innum(p);
-    #endif
-}
-void parse_jump(Program *p)
-{
-    int i;
-    int len;
-    p->cw++;
-    check_numcon(p);
-    len = (int)strlen(p->array[p->cw]);
-    for(i=0;i<len;i++){
-        if(p->array[p->cw][i]=='.'){
-            ERROR_2("Must be a INT NUM after JUMP",p->array[p->cw],p->cw);
-        }
+    if(!strsame(p->array[p->cw],mark)){
+        fprintf(stderr,"Expect a \"%s\" here: %s(WORD %d) in %s, line %d\n",mark,p->array[p->cw],p->cw,__FILE__,__LINE__);
+        exit(2);
     }
 }
-void parse_print(Program *p)
-{
-    char flag;
-    p->cw++;
-    flag = p->array[p->cw][FIRST];
-    if(flag =='%'){
-        check_var(p,'%');
-    }else if (flag == '$'){
-        check_var(p,'$');
-    }else if (flag == '\"' || flag == '#'){
-        check_strcon(p);
-    }else{
-        check_numcon(p);
-    }
-}
-void parse_rnd(Program *p)/*和parse_innum 一样*/
-{
-    p->cw++;
-    if(!strsame(p->array[p->cw],"(")){
-        ERROR_2("Expect a \"(\" after RND",p->array[p->cw],p->cw);
-    }
-    p->cw++;
-    check_var(p,'%');
-    p->cw++;
-    if(!strsame(p->array[p->cw],")")){
-        ERROR_2("Expect a \")\" to finish RND",p->array[p->cw],p->cw);
-    }
-    #ifdef INTERP
-    interp_rnd(p);
-    #endif
-}
-void parse_ifcondition(Program *p)
-{
-    char flag;
-    p->cw++;
-    if(!strsame(p->array[p->cw],"(")){
-        ERROR_2("Expect a \"(\" after IFCOND",p->array[p->cw],p->cw);
-    }
-    p->cw++;
-    flag = p->array[p->cw][FIRST];
-    if(flag =='%'){
-        check_var(p,'%');
-    }else if (flag == '$'){
-        check_var(p,'$');
-    }else if (flag == '\"' || flag == '#'){
-        check_strcon(p);
-    }else{
-        check_numcon(p);
-    }
-    p->cw++;
-    if(!strsame(p->array[p->cw],",")){
-        ERROR_2("Expect a \",\" after First VARCON in IFCOND",p->array[p->cw],p->cw);
-    }
-    p->cw++;
-    flag = p->array[p->cw][FIRST];
-    if(flag =='%'){
-        check_var(p,'%');
-    }else if (flag == '$'){
-        check_var(p,'$');
-    }else if (flag == '\"' || flag == '#'){
-        check_strcon(p);
-    }else{
-        check_numcon(p);
-    }
-    p->cw++;
-    if(!strsame(p->array[p->cw],")")){
-        ERROR_2("Expect a \")\" to finish IFCOND",p->array[p->cw],p->cw);
-    }
-}
-void parse_inc(Program *p)/*和parse_innum,parse_rnd 一样*/
-{
-    p->cw++;
-    if(!strsame(p->array[p->cw],"(")){
-        ERROR_2("Expect a \"(\" after INC",p->array[p->cw],p->cw);
-    }
-    p->cw++;
-    check_var(p,'%');
-    p->cw++;
-    if(!strsame(p->array[p->cw],")")){
-        ERROR_2("Expect a \")\" to finish INC",p->array[p->cw],p->cw);
-    }
-}
-void parse_set_variable(Program *p,char flag)
-{
-    check_var(p,flag);
-    p->cw++;
-    if(!strsame(p->array[p->cw],"=")){
-        ERROR_2("Expect a \"=\" to assign",p->array[p->cw],p->cw);
-    }
-    p->cw++;
-    if(flag == '%'){
-        check_numcon(p);
-    }else{
-        check_strcon(p);
-    }
-    #ifdef INTERP
-    interp_set_var(p);
-    #endif
-}
-
 void check_strcon(Program *p)
 {
     int len = (int)strlen(p->array[p->cw]);
@@ -553,7 +411,7 @@ void check_var(Program *p,char flag)
     int len = (int)strlen(p->array[p->cw]);
     int i;
     if(p->array[p->cw][FIRST] != flag){
-        ERROR_2("Expect a % or $ to start VAR",p->array[p->cw],p->cw);
+        ERROR_2("Expect a matched \"%\" or \"$\" to start VAR",p->array[p->cw],p->cw);
     }
     for(i=1;i<len;i++){
         if(p->array[p->cw][i]<'A'||p->array[p->cw][i]>'Z'){
@@ -562,12 +420,201 @@ void check_var(Program *p,char flag)
     }
 }
 
+void parse_file(Program *p) /*其他情况 已经在读文件时候考虑了*/
+{
+    p->cw++;
+    check_strcon(p);
+    #ifdef INTERP
+    interp_file(p);
+    #endif
+}
+
+
+
+void parse_in2str(Program *p)
+{
+    check_mark(p,"(");
+    p->cw++;
+    check_var(p,'$');
+    check_mark(p,",");
+    p->cw++;
+    check_var(p,'$');
+    check_mark(p,")");
+    #ifdef INTERP
+    interp_in2str(p);
+    #endif
+}
+void parse_innum(Program *p)
+{
+    check_mark(p,"(");
+    p->cw++;
+    check_var(p,'%');
+    check_mark(p,")");
+    #ifdef INTERP
+    interp_innum(p);
+    #endif
+}
+void parse_jump(Program *p)
+{
+    int i;
+    int len;
+    p->cw++;
+    check_numcon(p);
+    len = (int)strlen(p->array[p->cw]);
+    for(i=0;i<len;i++){
+        if(p->array[p->cw][i]=='.'){
+            ERROR_2("Must be a INT NUM after JUMP",p->array[p->cw],p->cw);
+        }
+    }
+}
+void parse_print(Program *p)
+{
+    char flag;
+    p->cw++;
+    flag = p->array[p->cw][FIRST];
+    if(flag =='%'){
+        check_var(p,'%');
+    }else if (flag == '$'){
+        check_var(p,'$');
+    }else if (flag == '\"' || flag == '#'){
+        check_strcon(p);
+    }else{
+        check_numcon(p);
+    }
+}
+void parse_rnd(Program *p)/*和parse_innum 一样*/
+{
+    check_mark(p,"(");
+    p->cw++;
+    check_var(p,'%');
+    check_mark(p,")");
+    #ifdef INTERP
+    interp_rnd(p);
+    #endif
+}
+void parse_ifcondition(Program *p)
+{
+    char flag;
+    check_mark(p,"(");
+    p->cw++;
+    flag = p->array[p->cw][FIRST];
+    if(flag =='%'){
+        check_var(p,'%');
+    }else if (flag == '$'){
+        check_var(p,'$');
+    }else if (flag == '\"' || flag == '#'){
+        check_strcon(p);
+    }else{
+        check_numcon(p);
+    }
+    check_mark(p,",");
+    p->cw++;
+    flag = p->array[p->cw][FIRST];
+    if(flag =='%'){
+        check_var(p,'%');
+    }else if (flag == '$'){
+        check_var(p,'$');
+    }else if (flag == '\"' || flag == '#'){
+        check_strcon(p);
+    }else{
+        check_numcon(p);
+    }
+    check_mark(p,")");
+}
+void parse_inc(Program *p)/*和parse_innum,parse_rnd 一样*/
+{
+    check_mark(p,"(");
+    p->cw++;
+    check_var(p,'%');
+    check_mark(p,")");
+}
+void parse_set_variable(Program *p,char flag)
+{
+    check_var(p,flag);
+    check_mark(p,"=");
+    p->cw++;
+    if(flag == '%'){
+        check_numcon(p);
+    }else{
+        check_strcon(p);
+    }
+    #ifdef INTERP
+    interp_set_var(p);
+    #endif
+}
 
 
 void interp_print(Program *p)
 {
-    printf("%s",p->array[p->cw]);
-
+    int flag = 0;
+    char *str;
+    char tempc = p->array[p->cw][FIRST];
+    char *temps;
+    if( tempc == '%'){
+        str = mvm_search(p->map,p->array[p->cw]);
+        flag = 1;
+    }else if (tempc == '$'){
+        temps = mvm_search(p->map,p->array[p->cw]);
+        str = take_quota(temps);
+    }else {
+        str = take_quota(p->array[p->cw]);
+    }
+    temps = p->array[p->cw-OFFSET];
+    if(strsame(temps,"PRINT")){
+        printf("%s\n",str);
+    }else{
+        printf("%s",str);
+    }
+    if(flag == 0){
+        free(str);
+    }
+}
+ char *take_quota(char *content)
+ {
+    char *str,*temp;
+    int i,j;
+    int len = strlen(content);
+    str = (char *)calloc(len+OFFSET,sizeof(char));
+    check_allocate(str);
+    if(content[FIRST]=='#'){
+        temp = translate_hashes(content);
+        for(i=0,j=1;i<len-TWO;i++,j++){
+            str[i]=temp[j];
+        }
+        free(temp);
+        return str;
+    }
+    for(i=0,j=1;i<len-TWO;i++,j++){
+        str[i]=content[j];
+    }
+     return str;
+ }
+char *translate_hashes(char *content)
+{
+    char *str;
+    int i;
+    int len = strlen(content);
+    char temp;
+    str = (char *)calloc(len+OFFSET,sizeof(char));
+    check_allocate(str);
+    for(i=0;i<len;i++)
+    {
+        temp = content[i];
+        if(temp == '#'){
+            str[i] = '\"';
+        }else if((temp >= 'a'&& temp <'n')||(temp >= 'A'&& temp <'N')){
+            str[i] = temp +ROT13;
+        }else if((temp >= 'n'&& temp <= 'z')||(temp >= 'N'&& temp <= 'Z')) {
+            str[i] = temp -ROT13;
+        }else if (temp >= '0' && temp < '5') {
+            str[i] = temp + ROT5;
+        }else if (temp >= '5' && temp <= '9'){
+            str[i] = temp -ROT5;
+        }else{
+            str[i] = temp;
+        }
+    }
+    return str;
 }
 
 
@@ -599,16 +646,20 @@ void interp_rnd(Program *p)
     p->cw++;
 }
 
-void interp_innum(Program *p) /*怎么处理可能的越界*/
+void interp_innum(Program *p) /*怎么处理可能的越界,能否直接读一个str 而不是 float*/
 {
     float number;
     char *data;
-    data = (char *)calloc(DEFAULTSIZE,sizeof(char));
+    data = (char *)calloc(DEFAULTSIZE*TWO,sizeof(char));
     p->cw--;
     if(scanf("%f",&number)!=1){
         ERROR_2("Need input a float number",p->array[p->cw],p->cw);
     }
     sprintf(data,"%f",number);
+    if(data[DEFAULTSIZE*TWO-OFFSET] !='\0'){
+        ERROR_2("Scanned Float Number is too long, if you really need, "\
+                "please manually increase the allocated memory",p->array[p->cw-OFFSET],p->cw-OFFSET);
+    }
     if(data[DEFAULTSIZE-1] != '\0'){
         ERROR_2("Input of float is too long",p->array[p->cw],p->cw);
     }
@@ -628,10 +679,18 @@ void interp_innum(Program *p) /*怎么处理可能的越界*/
 
 void interp_in2str(Program *p)/*怎么改成动态的*/
 {
-    char *str1 = calloc(DEFAULTSIZE,sizeof(char));
-    char *str2 = calloc(DEFAULTSIZE,sizeof(char));
+    char *str1 = calloc(DEFAULTSIZE*TWO,sizeof(char));
+    char *str2 = calloc(DEFAULTSIZE*TWO,sizeof(char));
     if(scanf("%s %s",str1,str2)!=2){
         ERROR_2("Need input two strings",p->array[p->cw],p->cw);
+    }
+    if(str1[DEFAULTSIZE*TWO-OFFSET] !='\0'){
+        ERROR_2("Scanned String is too long, if you really need, "\
+                "please manually increase the allocated memory",p->array[p->cw-OFFSET-TWO],p->cw-OFFSET-TWO);
+    }
+    if(str2[DEFAULTSIZE*2-OFFSET] !='\0'){
+        ERROR_2("Scanned String is too long, if you really need, "\
+                "please manually increase the allocated memory",p->array[p->cw-OFFSET],p->cw-OFFSET);
     }
     p->cw = p->cw -3;
     if(mvm_search(p->map,p->array[p->cw]) != NULL){
@@ -652,25 +711,17 @@ void interp_file(Program *p)
 {
     Program p2;
     int i;
-    char *str;
-    char *filename  = "test1.nal"; /*= (char *)calloc(DEFAULTSIZE,sizeof(char));*/
+    char *filename = take_quota(p->array[p->cw]);
     init_program(&p2);
     mvm_free(&(p2.map));
     p2.map = p->map;
     input_in_array(&p2,filename);
-
-    printf("p2.count = %d\n",p2.count);
+    free(filename);
+/*    printf("p2.count = %d\n",p2.count);
     for(i=0;i<p2.count;i++){
         printf("%s\n",p2.array[i]);
-    }
-
-    srand((unsigned)time(NULL));
+    }*/
     Prog(&p2);
-    printf("Parsed OK!\n");
-
-    str = mvm_print(p2.map);
-    printf("p2 : %s\n",str);
-    free(str);
 
     for(i=0;i<p2.count+OFFSET;i++){
         free(p2.array[i]);
@@ -678,5 +729,4 @@ void interp_file(Program *p)
     free(p2.array);
 /*
     free_program(&p2);*//*不能free mvm*/
-
 }
