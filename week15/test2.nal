@@ -1,6 +1,10 @@
 {
 
-	PRINT "why not correct!"
-	PRINT #Jul abg pbeerpg#
+   $A = "Neill"
+   %E = 12.4 
+
+   IFEQUAL ( $A , #Arvyy# ) {
+      PRINT #Uryyb Jbeyq!#
+   }
 
 }

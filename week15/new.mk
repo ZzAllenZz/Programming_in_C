@@ -8,7 +8,7 @@ EXECS = $(TESTBASE) $(TESTBASE)_d $(TESTBASE)_s
 CC = clang
 
 run: $(TESTBASE)
-	./$(TESTBASE) test1.nal
+	./$(TESTBASE) escape211.nal
 
 all: $(EXECS)
 

@@ -1,8 +1,10 @@
 {
-   PRINT #In test1, before#
-   IN2STR ( $A , $B )
-   FILE "test2.nal"
-   PRINT "In test1, after"
-
+	$VA = "NONE"
+	$VA = "WHY"
+	IN2STR ( $A , $B )
+    IFEQUAL ( $A , "GO" ) {
+		PRINT "EQUAL"
+      $VA = "MOVE"
+   }
 
 }

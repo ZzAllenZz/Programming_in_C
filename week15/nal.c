@@ -3,6 +3,7 @@
 #include<string.h>
 #include<assert.h>
 #include<time.h>
+#include <math.h>
 #include "mvm.h"
 
 #define DEFAULTSIZE  20
@@ -61,7 +62,7 @@ void parse_ifcondition(Program *p);
 void parse_inc(Program *p);
 void parse_set_variable(Program *p,char flag);
 
-void check_mark(Program *p, char* mark);
+void check_mark(Program *p, char* mark); /*把check函数 变成 传递对应的东西，而不是p*/
 void check_strcon(Program *p);
 void check_numcon(Program *p);
 void check_var(Program *p,char flag);
@@ -71,8 +72,12 @@ void interp_rnd(Program *p);
 void interp_innum(Program *p);
 void interp_in2str(Program *p);
 void interp_file(Program *p);
+void interp_jump (Program *p);
+void interp_inc (Program *p);
+void interp_ifcondition(Program *p);
 
-char *take_quota(char *content);
+void not_meet(Program *p);
+        char *take_quota(char *content);
 char *translate_hashes(char *content);
 
 
@@ -350,8 +355,8 @@ void Instruct(Program *p)
     }
     if(strsame(p->array[p->cw],"IFEQUAL")||strsame(p->array[p->cw],"IFGREATER")){
         parse_ifcondition(p);
-        p->cw++;
-        Prog(p);
+/*        p->cw++;
+        Prog(p);*/
         return;
     }
     if(strsame(p->array[p->cw],"INC")){
@@ -466,6 +471,9 @@ void parse_jump(Program *p)
             ERROR_2("Must be a INT NUM after JUMP",p->array[p->cw],p->cw);
         }
     }
+#ifdef INTERP
+    interp_jump(p);
+#endif
 }
 void parse_print(Program *p)
 {
@@ -520,13 +528,133 @@ void parse_ifcondition(Program *p)
         check_numcon(p);
     }
     check_mark(p,")");
+#ifdef INTERP
+    interp_ifcondition(p);
+#endif
 }
+
+void interp_ifcondition(Program *p)
+{
+    char flag;
+    int mark_1;
+    int mark_2;
+    char *str0;
+    char *str1;
+    char *str2;
+    float num1;
+    float num2;
+    int success = 0;
+    p->cw = p->cw -OFFSET - TWO - TWO;
+    str0 = p->array[p->cw];
+    p->cw = p->cw + TWO;
+    flag = p->array[p->cw][FIRST];
+    if(flag =='%'){
+        mark_1 = 0;
+        str1 = mvm_search(p->map,p->array[p->cw]);
+        if(str1 == NULL){
+            ERROR_2("Please define VAR before using",p->array[p->cw],p->cw);
+        }
+    }else if (flag == '$'){
+        mark_1 = 1;
+        str1 = mvm_search(p->map,p->array[p->cw]);
+        if(str1 == NULL){
+            ERROR_2("Please define VAR before using",p->array[p->cw],p->cw);
+        }
+        str1 = take_quota(str1);
+    }else if (flag == '\"' || flag == '#'){
+        mark_1 = 1;
+        str1 = p->array[p->cw];
+        str1 = take_quota(str1);
+    }else{
+        mark_1 = 0;
+        str1 = p->array[p->cw];
+    }
+
+    p->cw = p->cw +TWO;
+    flag = p->array[p->cw][FIRST];
+    if(flag =='%'){
+        mark_2 = 0;
+        str2 = mvm_search(p->map,p->array[p->cw]);
+        if(str2 == NULL){
+            ERROR_2("Please define VAR before using",p->array[p->cw],p->cw);
+        }
+    }else if (flag == '$'){
+        mark_2 = 1;
+        str2 = mvm_search(p->map,p->array[p->cw]);
+        if(str2 == NULL){
+            ERROR_2("Please define VAR before using",p->array[p->cw],p->cw);
+        }
+        str2 = take_quota(str2);
+    }else if (flag == '\"' || flag == '#'){
+        mark_2 = 1;
+        str2 = p->array[p->cw];
+        str2 = take_quota(str2);
+    }else{
+        mark_2 = 0;
+        str2 = p->array[p->cw];
+    }
+    if(mark_2 != mark_1){
+        ERROR_2("The types in IFCOND is not matched",p->array[p->cw],p->cw);
+    }
+
+    if(strsame(str0,"IFEQUAL") && mark_1 == 0){
+        num1 = atof(str1);
+        num2 = atof(str2);
+        if(fabs((double)(num1-num2))<=0.0005){
+            success = 1;
+        }else{
+            success = 0;
+        }
+    }else if (strsame(str0,"IFEQUAL") && mark_1 == 1){
+        if(strsame(str1,str2)){
+            success = 1;
+        }else{
+            success = 0;
+        }
+        free(str1);
+        free(str2);
+    }else if (strsame(str0,"IFGREATER") && mark_1 == 0){
+        num1 = atof(str1);
+        num2 = atof(str2);
+        if(fabs((double)(num1-num2))>0.0005 && num1 > num2){
+            success = 1;
+        }else{
+            success = 0;
+        }
+    }else if (strsame(str0,"IFGREATER") && mark_1 == 1){
+        ERROR_2("Cannot compare str in IFGREATER",p->array[p->cw],p->cw);
+    }
+
+    if(success == 1){
+        p->cw = p->cw + TWO;
+        Prog(p);
+    }else{
+        p->cw = p->cw + TWO;
+        not_meet(p);
+    }
+
+}
+
+void not_meet(Program *p) /*不能嵌套判断*/
+{
+    while(!strsame(p->array[p->cw],"}")){
+        p->cw++;
+    }
+}
+
+
+
+
+
 void parse_inc(Program *p)/*和parse_innum,parse_rnd 一样*/
 {
     check_mark(p,"(");
     p->cw++;
     check_var(p,'%');
     check_mark(p,")");
+#ifdef INTERP
+    interp_inc(p);
+#endif
 }
 void parse_set_variable(Program *p,char flag)
 {
@@ -552,9 +680,15 @@ void interp_print(Program *p)
     char *temps;
     if( tempc == '%'){
         str = mvm_search(p->map,p->array[p->cw]);
+        if(str == NULL){
+            ERROR_2("Please define variable before using",p->array[p->cw],p->cw);
+        }
         flag = 1;
     }else if (tempc == '$'){
         temps = mvm_search(p->map,p->array[p->cw]);
+        if(temps == NULL){
+            ERROR_2("Please define variable before using",p->array[p->cw],p->cw);
+        }
         str = take_quota(temps);
     }else {
         str = take_quota(p->array[p->cw]);
@@ -583,10 +717,16 @@ void interp_print(Program *p)
         }
         free(temp);
         return str;
+    }else if (content[FIRST]=='\"'){
+        for(i=0,j=1;i<len-TWO;i++,j++){
+            str[i]=content[j];
+        }
+    }else{
+        for(i=0;i<len;i++){
+            str[i]=content[i];
+        }
     }
-    for(i=0,j=1;i<len-TWO;i++,j++){
-        str[i]=content[j];
-    }
+
      return str;
  }
 char *translate_hashes(char *content)
@@ -646,29 +786,37 @@ void interp_rnd(Program *p)
     p->cw++;
 }
 
-void interp_innum(Program *p) /*怎么处理可能的越界,能否直接读一个str 而不是 float*/
+void interp_innum(Program *p) /*怎么处理可能的越界,能否直接读一个str 而不是 float,然后判断str合不合法*/
 {
-    float number;
+    /*float number;*/
     char *data;
+    int len;
+    int i;
+    int flag=0;
     data = (char *)calloc(DEFAULTSIZE*TWO,sizeof(char));
     p->cw--;
-    if(scanf("%f",&number)!=1){
+    if(scanf("%s",data)!=1){
         ERROR_2("Need input a float number",p->array[p->cw],p->cw);
     }
-    sprintf(data,"%f",number);
+    /*sprintf(data,"%f",number);*/
     if(data[DEFAULTSIZE*TWO-OFFSET] !='\0'){
         ERROR_2("Scanned Float Number is too long, if you really need, "\
                 "please manually increase the allocated memory",p->array[p->cw-OFFSET],p->cw-OFFSET);
     }
-    if(data[DEFAULTSIZE-1] != '\0'){
-        ERROR_2("Input of float is too long",p->array[p->cw],p->cw);
+    len = strlen(data);
+
+    for(i=0;i<len;i++){
+        if((data[i]<'0'||data[i]>'9')&&data[i]!='.'){
+            ERROR_2("Expect only digit or . in NUM",p->array[p->cw],p->cw);
+        }
+        if(data[i] =='.'){
+            flag++;
+        }
+        if(flag>1){
+            ERROR_2("No more than 1 dot in NUM",p->array[p->cw],p->cw);
+        }
     }
-/*    while (data[size-1] != '\0'){
-        free(data);
-        size *= 2;
-        data = (char *)calloc(size,sizeof(char));
-        sprintf(data,"%f",number);
-    }*/
+
     if(mvm_search(p->map,p->array[p->cw]) != NULL){
         mvm_delete(p->map,p->array[p->cw]);
     }
@@ -729,4 +877,38 @@ void interp_file(Program *p)
     free(p2.array);
 /*
     free_program(&p2);*//*不能free mvm*/
+}
+
+
+void interp_jump (Program *p)
+{
+    int number = atoi(p->array[p->cw]);
+    p->cw = number - OFFSET;
+}
+/*
+void str2num (char *content)
+{
+
+}*/
+
+void interp_inc (Program *p)
+{
+    float number;
+    char *temp;
+    p->cw--;
+    temp = mvm_search(p->map,p->array[p->cw]);
+    if(temp == NULL){
+        ERROR_2("Please define var before using",p->array[p->cw],p->cw);
+    }
+    number = atof(temp);
+    number = number + OFFSET;
+    temp = (char *)calloc(DEFAULTSIZE*2,sizeof(char));
+    if(temp[DEFAULTSIZE*TWO-OFFSET] !='\0'){
+        ERROR_2("Increasing number is out of bound",p->array[p->cw],p->cw);
+    }
+    sprintf(temp,"%f",number);
+    mvm_delete(p->map,p->array[p->cw]);
+    mvm_insert(p->map,p->array[p->cw],temp);
+    free(temp);
+    p->cw++;
 }
