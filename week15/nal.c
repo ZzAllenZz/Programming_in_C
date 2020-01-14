@@ -77,7 +77,7 @@ void interp_inc (Program *p);
 void interp_ifcondition(Program *p);
 
 void not_meet(Program *p);
-        char *take_quota(char *content);
+char *take_quota(char *content);
 char *translate_hashes(char *content);
 
 
