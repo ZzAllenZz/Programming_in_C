@@ -1,9 +1,9 @@
 {
 
-   $A = "Neill"
+   $D = "Neill"
    %E = 12.4 
 
-   IFEQUAL ( $A , #Arvyy# ) {
+   IFEQUAL ( $D , #Arvyy# ) {
       PRINT #Uryyb Jbeyq!#
    }
 

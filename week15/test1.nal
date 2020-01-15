@@ -1,10 +1,14 @@
 {
-	$VA = "NONE"
-	$VA = "WHY"
-	IN2STR ( $A , $B )
+	$A = "GO"
+	%B = 12.1
+	PRINT %B
+	PRINT $A
+	FILE "test2.nal"
+	
     IFEQUAL ( $A , "GO" ) {
 		PRINT "EQUAL"
-      $VA = "MOVE"
-   }
+		$VA = "GO"
 
+   }
+	
 }

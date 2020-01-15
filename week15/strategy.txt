@@ -1,0 +1,13 @@
+
+
+
+
+
+JUMP
+1.in parser, as long as it followed be a NUMCON, it will be parsed ok
+2.in interpreter, it must be an integer and smaller than p->count
+
+PRINT or PRINTN
+1.in parser, as long as it followed be a VARCON, it will be parsed ok;
+do not think about whether the var is declared;
+2.in interpreter, if it is a var, it must be defined before print;
