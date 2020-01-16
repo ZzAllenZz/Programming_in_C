@@ -1,0 +1,13 @@
+{
+
+   
+   $A = "COOL"
+   $B = #PBBY#
+   %B = 12.75
+   
+   PRINT "Hello"
+   PRINTN #Uv#
+   PRINT $A
+   PRINTN %B
+
+} 

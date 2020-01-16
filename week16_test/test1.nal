@@ -1,5 +1,16 @@
 {
 
    PRINT "Hello World! From test1"
+   	$A = "sds"
+	$A = "GO"
+	PRINT $A
+	INNUM ( %B )
+    IFEQUAL ( $A , "GO" ) {
+		PRINT "EQUAL"
+		PRINT %B
+		$VA = "GO"
+		DOOF
+
+   }
 
 }

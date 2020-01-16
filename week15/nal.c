@@ -6,16 +6,26 @@
 #include <math.h>
 #include "mvm.h"
 
-#define DEFAULTSIZE  20
-#define REQUIRED 2 /*required arguments in command line*/
-#define OFFSET 1
-#define FIRST 0
-#define SECOND 1
+#define LIST_SIZE 256 /*Max number of Programs that can conduct simultaneously  */
+#define DEFAULTSIZE  20 /*Default size of array[p->cw]*/
+
+#define REQUIRED 2 /*Required arguments in command line*/
+#define OFFSET 1 /*One location offset*/
+
+#define FIRST 0 /*For indexing*/
+#define SECOND 1 /*For indexing*/
+
+#define ZERO 0
+#define ONE 1
 #define TWO 2
-#define RNDBASE 100
+#define THREE 3
+
+#define RNDBASE 100 /*Used in RND*/
+
 #define ROT13 13
 #define ROT5 5
 #define strsame(A,B) (strcmp((A),(B))==0)
+
 #define ERROR_1(PHRASE) {\
 fprintf(stderr,"Fatal Error: %s occured in %s, line %d\n",\
 PHRASE,__FILE__,__LINE__);\
@@ -28,65 +38,106 @@ exit(2);\
 }
 
 typedef struct program{
-    char **array;
-    mvm *map;
-    int count;
-    int cw;
-    aaa *a;
-
+    char **array;/*Used to store tokens*/
+    mvm *map;/*Used to store VAR*/
+    int count;/*Total tokens read in*/
+    int cw;/*Current word to index token in recursion*/
+    struct list *lt;
+    /*A structure of list used to record how many Programs created*/
 } Program;
-typedef struct aaa{
-    Program (*p)[256];
-} aaa;
+
+typedef struct list{
+    Program *prog[LIST_SIZE]; /*An array of pointer of Program */
+    int size;
+} List;
+
 
 void init_program(Program *p);
 void free_program(Program *p);
+/*Check the arguments in command line == 2 */
 void check_argc(int argc);
+/*Check whether it has successfully allocated a memory location for char *str*/
 void check_allocate(char *str);
+/*Resize the array[p->cw]*/
 void resize_array(Program *p);
 
 
+/*Read in tokens from file to p->array */
 void input_in_array(Program *p,char *filename);
-void is_print(FILE *fp,Program *p); /*要说明 是为了 space才这么复杂的处理*/
+/*is_... functions exist mainly because we need to deal with space ' ' in VARCON */
+/*Deal with when token is "PRINT" OR "PRINTN" */
+void is_print(FILE *fp,Program *p);
+/*Deal with when token is to SET VAR*/
 void is_setvar(FILE *fp,Program *p);
+/*Deal with when token is "IFEQUAL" or "IFGREATER"*/
 void is_ifcond(FILE *fp,Program *p);
+/*Deal with when token is "FILE"*/
 void is_file(FILE *fp, Program *p);
+
+
+/*Put VARCON from file to p->array*/
 void read_varcon(FILE *fp,Program *p);
+/*Nested in read_varcon*/
 void read_var_or_numcon(FILE *fp,char *str,Program *p,int i);
+/*Nested in read_varcon*/
 void read_strcon(FILE *fp,char *str,Program *p,int i,char flag);
 
-void interp_print(Program *p);
 
 void parse_file(Program *p);
-void parse_in2str(Program *p);
-void parse_innum(Program *p);
-void parse_jump(Program *p);
-void parse_print(Program *p);
-void parse_rnd(Program *p);
-void parse_ifcondition(Program *p);
-void parse_inc(Program *p);
-void parse_set_variable(Program *p,char flag);
+void interp_file(Program *p);
 
-void check_symbol(Program *p, char* symbol); /*把check函数 变成 传递对应的东西，而不是p...不能 因为要报错用*/
+void interp_abort(Program *p);
+
+void parse_in2str(Program *p);
+void interp_in2str(Program *p);
+
+void parse_innum(Program *p);
+void interp_innum(Program *p);
+
+void parse_jump(Program *p);
+void interp_jump (Program *p);
+
+void parse_print(Program *p);
+void interp_print(Program *p);
+
+void parse_rnd(Program *p);
+void interp_rnd(Program *p);
+
+void parse_ifcondition(Program *p);
+void interp_ifcondition(Program *p);
+/*Store two VARCONs in ifcond
+ *mark is used to present whether two VARCONs are matched*/
+void is_ifmatched(Program *p, char **str,int *mark);
+/*Used to present whether IFCOND is met*/
+int is_meet(Program *p, char **str, int mark);
+/*Escape a couple { } when IDCOND is not met*/
+void escape(Program *p);
+
+
+void parse_inc(Program *p);
+void interp_inc (Program *p);
+
+void parse_set_variable(Program *p,char flag);
+void interp_set_var(Program *p,char symbol);
+
+/*check_...function is used to ensure the input is valid
+ * if not, report an error*/
+void check_symbol(Program *p, char* symbol);
 void check_strcon(Program *p);
 void check_numcon(Program *p);
 void check_var(Program *p,char flag);
+/*Make sure VAR has been defined*/
 void check_declare(Program *p);
 
-void interp_set_var(Program *p);
-void interp_rnd(Program *p);
-void interp_innum(Program *p);
-void interp_in2str(Program *p);
-void interp_file(Program *p);
-void interp_abort(Program *p);
-void interp_jump (Program *p);
-void interp_inc (Program *p);
-void interp_ifcondition(Program *p);
-
-void not_meet(Program *p);
+/*Used take off double quota in STRCON*/
 char *take_quota(char *content);
+/*Used to translate ROT to Plain*/
 char *translate_hashes(char *content);
-
+/*Used to translate getchar() to get a str
+ * Used in <INPUT>*/
+void get_str(char **str);
+/*Insert a new key (if it has existed, delete previous one)into map*/
+void insert_map (Program *p, char *str);
 
 
 void Prog(Program *p);
@@ -95,31 +146,21 @@ void Instruct(Program *p);
 
 int main(int argc,char **argv)
 {
-
     Program p;
-  /*  int i;*/
-    char *str;
 
     check_argc(argc);
-
     init_program(&p);
 
     input_in_array(&p,argv[SECOND]);
-
-/*    printf("p.count = %d\n",p.count);
-    for(i=0;i<p.count;i++){
-        printf("%s\n",p.array[i]);
-    }*/
     #ifdef INTERP
     srand((unsigned)time(NULL));
     #endif
     Prog(&p);
+    #ifdef INTERP
+    printf("Interpreted OK!\n");
+    #else
     printf("Parsed OK!\n");
-
- str = mvm_print(p.map);
-    printf("%s\n",str);
-    free(str);
-
+    #endif
     free_program(&p);
     return 0;
 }
@@ -128,14 +169,34 @@ void init_program(Program *p)
 {
     p->cw=0;
     p->count=0;
+
+    /*Initialize the map*/
     p->map = mvm_init();
+
+    /*Initialize the array*/
     p->array = (char **)malloc(sizeof(char *));
     if(p->array==NULL){
         ERROR_1("Cannot allocate memory");
     }
     p->array[p->count]= (char *)calloc(DEFAULTSIZE, sizeof(char));
     check_allocate(p->array[p->count]);
+
+    /*Initialize the list*/
+    p->lt = (List *)malloc(sizeof(List));
+    if(p->lt == NULL){
+        ERROR_1("Cannot allocate memory");
+    }
+    p->lt->prog[FIRST] = p;
+    p->lt->size = ONE;
+
 }
+/*void init_list(Program *p)
+{
+    p->lt = (List *)malloc(sizeof(List));
+    p->lt->prog[FIRST] = p;
+    p->lt->size = ONE;
+}*/
+
 void free_program(Program *p)
 {
     int i;
@@ -144,7 +205,7 @@ void free_program(Program *p)
     }
     free(p->array);
     mvm_free(&(p->map));
-
+    free(p->lt);
 }
 void check_argc(int argc)
 {
@@ -360,8 +421,7 @@ void Instruct(Program *p)
     }
     if(strsame(p->array[p->cw],"IFEQUAL")||strsame(p->array[p->cw],"IFGREATER")){
         parse_ifcondition(p);
-/*        p->cw++;
-        Prog(p);*/
+
         return;
     }
     if(strsame(p->array[p->cw],"INC")){
@@ -430,7 +490,7 @@ void check_var(Program *p,char flag)
     }
 }
 
-void parse_file(Program *p) /*其他情况 已经在读文件时候考虑了*/
+void parse_file(Program *p)
 {
     p->cw++;
     check_strcon(p);
@@ -445,20 +505,39 @@ void interp_file(Program *p)
     char *filename = take_quota(p->array[p->cw]);
     init_program(&p2);
     mvm_free(&(p2.map));
+    free(p2.lt);
     p2.map = p->map;
+    p2.lt = p->lt;
+    p->lt->size++;
+    p->lt->prog[p->lt->size-OFFSET] = &p2;
     input_in_array(&p2,filename);
     free(filename);
     Prog(&p2);
 
+
+/*    for(i=0;i<p2.count;i++){
+        printf("%s",p->lt->prog[p->lt->size-OFFSET]->array[i]);
+    }*/
     for(i=0;i<p2.count+OFFSET;i++){
-        free(p2.array[i]);
+        free(p->lt->prog[p->lt->size-OFFSET]->array[i]);
     }
     free(p2.array);
+    /*free(p->lt->prog[p->lt->size-OFFSET]);*/
+    p->lt->size--;
 }
 
 void interp_abort(Program *p)
 {
-
+    int i,j,size;
+    size = p->lt->size;
+    for(i=0;i<size;i++){
+        for(j=0;j<p->lt->prog[i]->count+OFFSET;j++){
+            free(p->lt->prog[i]->array[j]);
+        }
+        free(p->lt->prog[i]->array);
+    }
+    mvm_free(&(p->map));
+    free(p->lt);
     printf("Interpreted OK\n");
     exit(0);
 }
@@ -476,6 +555,46 @@ void parse_in2str(Program *p)
     interp_in2str(p);
     #endif
 }
+
+void interp_in2str(Program *p)/*怎么改成动态的*/
+{
+    /*i is used to control the round, total round = 2;*/
+    int i;
+    char *str;
+
+    p->cw = p->cw - TWO - ONE;
+    for(i=FIRST;i<TWO;i++){
+        str = (char *)calloc(ONE,sizeof(char));
+        check_allocate(str);
+        get_str(&str);
+        insert_map(p,str);
+        free(str);
+        p->cw = p->cw +TWO;
+    }
+    p->cw = p->cw - TWO;
+    p->cw++;
+}
+
+void get_str(char **str)
+{
+    char c;
+    int j = FIRST;
+    /*j is used to index str;*/
+    while((c= getchar()) != ' ' && c != '\n' && c != EOF){
+        *str = (char *)realloc(*str,(strlen(*str)+TWO)* sizeof(char));
+        check_allocate(*str);
+        (*str)[j++]=c;
+        (*str)[j]='\0';
+    }
+}
+void insert_map(Program *p, char *str)
+{
+    if(mvm_search(p->map,p->array[p->cw]) != NULL){
+        mvm_delete(p->map,p->array[p->cw]);
+    }
+    mvm_insert(p->map,p->array[p->cw],str);
+}
+
 void parse_innum(Program *p)
 {
     check_symbol(p,"(");
@@ -486,6 +605,31 @@ void parse_innum(Program *p)
     interp_innum(p);
     #endif
 }
+void interp_innum(Program *p)
+{
+    int i,len,flag = ZERO;
+    char *str;
+    p->cw = p->cw - OFFSET;
+    str = (char *)calloc(ONE,sizeof(char));
+    check_allocate(str);
+    get_str(&str);
+    len = (int) strlen(str);
+    for(i=ZERO;i<len;i++){
+        if((str[i]<'0'||str[i]>'9')&&str[i]!='.'){
+            ERROR_2("Expect only digit or . in NUM",p->array[p->cw],p->cw);
+        }
+        if(str[i] =='.'){
+            flag++;
+        }
+        if(flag>1){
+            ERROR_2("No more than 1 dot in NUM",p->array[p->cw],p->cw);
+        }
+    }
+    insert_map(p,str);
+    free(str);
+    p->cw = p->cw + OFFSET;
+}
+
 void parse_jump(Program *p)
 {
     p->cw++;
@@ -495,7 +639,23 @@ void parse_jump(Program *p)
     interp_jump(p);
 #endif
 }
-
+void interp_jump (Program *p)
+{
+    int len,i,number;
+    len = (int)strlen(p->array[p->cw]);
+    for(i=0;i<len;i++){
+        if(p->array[p->cw][i]=='.'){
+            ERROR_2("Must be a integer after JUMP :",\
+            p->array[p->cw],p->cw);
+        }
+    }
+    number = atoi(p->array[p->cw]);
+    if(number >= p->count){
+        ERROR_2("Jump number must be smaller than total count :",\
+        p->array[p->cw],p->cw);
+    }
+    p->cw = number - OFFSET;
+}
 void parse_print(Program *p)
 {
     char flag;
@@ -517,7 +677,7 @@ void parse_print(Program *p)
 
 void interp_print(Program *p)
 {
-    int flag = 0;
+    int flag = 0;/*flag used to identify whether str need be freed.*/
     char *str,*temps;
     char tempc = p->array[p->cw][FIRST];
     if( tempc == '%'){
@@ -551,150 +711,140 @@ void parse_rnd(Program *p)/*和parse_innum 一样*/
     interp_rnd(p);
     #endif
 }
+void interp_rnd(Program *p)
+{
+    char *data;
+    int random;
+    p->cw--;
+    data = (char *)calloc(THREE,sizeof(char));
+    check_allocate(data);
+    random = rand() % RNDBASE;
+    sprintf(data,"%d",random);
+    insert_map(p,data);
+    free(data);
+    p->cw++;
+}
 void parse_ifcondition(Program *p)
 {
     char flag;
+    int i;
     check_symbol(p,"(");
     p->cw++;
-    flag = p->array[p->cw][FIRST];
-    if(flag =='%'){
-        check_var(p,'%');
-    }else if (flag == '$'){
-        check_var(p,'$');
-    }else if (flag == '\"' || flag == '#'){
-        check_strcon(p);
-    }else{
-        check_numcon(p);
+    for(i=0;i<TWO;i++){
+        flag = p->array[p->cw][FIRST];
+        if(flag =='%'){
+            check_var(p,'%');
+        }else if (flag == '$'){
+            check_var(p,'$');
+        }else if (flag == '\"' || flag == '#'){
+            check_strcon(p);
+        }else{
+            check_numcon(p);
+        }
+        p->cw = p->cw + TWO;
     }
+    p->cw = p->cw - TWO -TWO;
     check_symbol(p,",");
-    p->cw++;
-    flag = p->array[p->cw][FIRST];
-    if(flag =='%'){
-        check_var(p,'%');
-    }else if (flag == '$'){
-        check_var(p,'$');
-    }else if (flag == '\"' || flag == '#'){
-        check_strcon(p);
-    }else{
-        check_numcon(p);
-    }
+    p->cw = p->cw + ONE;
     check_symbol(p,")");
+    /*Now,p->array[p->cw] points to ")"*/
 #ifdef INTERP
     interp_ifcondition(p);
+#endif
+#ifndef INTERP
+    p->cw++;
+    Prog(p);
 #endif
 }
 
 void interp_ifcondition(Program *p)
 {
-    char flag;
-    int mark_1;
-    int mark_2;
-    char *str0;
-    char *str1;
-    char *str2;
-    float num1;
-    float num2;
-    int success = 0;
-    p->cw = p->cw -OFFSET - TWO - TWO;
-    str0 = p->array[p->cw];
-    p->cw = p->cw + TWO;
-    flag = p->array[p->cw][FIRST];
-    if(flag =='%'){
-        mark_1 = 0;
-        str1 = mvm_search(p->map,p->array[p->cw]);
-        if(str1 == NULL){
-            ERROR_2("Please define VAR before using",p->array[p->cw],p->cw);
-        }
-    }else if (flag == '$'){
-        mark_1 = 1;
-        str1 = mvm_search(p->map,p->array[p->cw]);
-        if(str1 == NULL){
-            ERROR_2("Please define VAR before using",p->array[p->cw],p->cw);
-        }
-        str1 = take_quota(str1);
-    }else if (flag == '\"' || flag == '#'){
-        mark_1 = 1;
-        str1 = p->array[p->cw];
-        str1 = take_quota(str1);
-    }else{
-        mark_1 = 0;
-        str1 = p->array[p->cw];
+    int success, mark = 0;
+    char *str[THREE];/*Used to store IFCOND, First VARCON and Second VARCON*/
+    p->cw = p->cw - OFFSET - TWO - TWO;/*Put p->cw to IFCOND*/
+    str[ZERO] = p->array[p->cw];
+    p->cw = p->cw + TWO; /*Put p->cw to first VARCON*/
+    is_ifmatched(p,str,&mark);/*Store two VARCONs and give mark*/
+    /*mark==0 means they are NUMVAR or NUMCON---needn't be freed
+     *mark==2 means they are STRVER or STRCON---need be freed*/
+    if(mark != 0 && mark != 2){
+        ERROR_2("The types of VARCON in IFCOND is not matched",\
+        p->array[p->cw],p->cw);
     }
-
-    p->cw = p->cw +TWO;
-    flag = p->array[p->cw][FIRST];
-    if(flag =='%'){
-        mark_2 = 0;
-        str2 = mvm_search(p->map,p->array[p->cw]);
-        if(str2 == NULL){
-            ERROR_2("Please define VAR before using",p->array[p->cw],p->cw);
-        }
-    }else if (flag == '$'){
-        mark_2 = 1;
-        str2 = mvm_search(p->map,p->array[p->cw]);
-        if(str2 == NULL){
-            ERROR_2("Please define VAR before using",p->array[p->cw],p->cw);
-        }
-        str2 = take_quota(str2);
-    }else if (flag == '\"' || flag == '#'){
-        mark_2 = 1;
-        str2 = p->array[p->cw];
-        str2 = take_quota(str2);
-    }else{
-        mark_2 = 0;
-        str2 = p->array[p->cw];
+    success = is_meet(p,str,mark);/*success==1 means IFCOND is met*/
+    if(mark == 2){
+        free(str[ONE]);
+        free(str[TWO]);
     }
-    if(mark_2 != mark_1){
-        ERROR_2("The types in IFCOND is not matched",p->array[p->cw],p->cw);
-    }
-
-    if(strsame(str0,"IFEQUAL") && mark_1 == 0){
-        num1 = atof(str1);
-        num2 = atof(str2);
-        if(fabs((double)(num1-num2))<=0.0005){
-            success = 1;
-        }else{
-            success = 0;
-        }
-    }else if (strsame(str0,"IFEQUAL") && mark_1 == 1){
-        if(strsame(str1,str2)){
-            success = 1;
-        }else{
-            success = 0;
-        }
-        free(str1);
-        free(str2);
-    }else if (strsame(str0,"IFGREATER") && mark_1 == 0){
-        num1 = atof(str1);
-        num2 = atof(str2);
-        if(fabs((double)(num1-num2))>0.0005 && num1 > num2){
-            success = 1;
-        }else{
-            success = 0;
-        }
-    }else if (strsame(str0,"IFGREATER") && mark_1 == 1){
-        ERROR_2("Cannot compare str in IFGREATER",p->array[p->cw],p->cw);
-    }
-
     if(success == 1){
         p->cw = p->cw + TWO;
         Prog(p);
     }else{
-        p->cw = p->cw + TWO;
-        not_meet(p);
+        p->cw = p->cw + ONE;/*Since check_symbol begins with p->cw++;*/
+        check_symbol(p,"{");
+        escape(p);
     }
-
 }
 
-void not_meet(Program *p) /*不能嵌套判断*/
+void is_ifmatched(Program *p, char **str,int *mark)
 {
-    while(!strsame(p->array[p->cw],"}")){
+    char flag;
+    int i;
+    for(i=0;i<TWO;i++){
+        flag = p->array[p->cw][FIRST];
+        if(flag =='%'){
+            check_declare(p);
+
+            str[i+OFFSET] = mvm_search(p->map,p->array[p->cw]);
+        }else if (flag == '$'){
+            (*mark)++;
+            check_declare(p);
+            str[i+OFFSET] = mvm_search(p->map,p->array[p->cw]);
+            str[i+OFFSET] = take_quota(str[i+OFFSET]);
+        }else if (flag == '\"' || flag == '#'){
+            (*mark)++;
+            str[i+OFFSET] = p->array[p->cw];
+            str[i+OFFSET] = take_quota(str[i+OFFSET]);
+        }else{
+            str[i+OFFSET] = p->array[p->cw];
+        }
+        p->cw = p->cw + TWO;
+    }
+    p->cw = p->cw - TWO;
+}
+
+int is_meet(Program *p, char **str, int mark)
+{
+    int success = ZERO;
+    float num1,num2;
+    if(strsame(str[ZERO],"IFEQUAL") && mark == 0){
+        num1 = atof(str[ONE]);
+        num2 = atof(str[TWO]);
+        success = (fabs((double)(num1-num2))<=0.0005);
+    }else if (strsame(str[ZERO],"IFEQUAL") && mark == 2){
+        success = strsame(str[ONE],str[TWO]);
+    }else if (strsame(str[ZERO],"IFGREATER") && mark == 0){
+        num1 = atof(str[ONE]);
+        num2 = atof(str[TWO]);
+        success = (fabs((double)(num1-num2))>0.0005 && num1 > num2);
+    }else if (strsame(str[ZERO],"IFGREATER") && mark == 2){
+        ERROR_2("Cannot compare str in IFGREATER",\
+        p->array[p->cw],p->cw);
+    }
+    return success;
+}
+
+void escape(Program *p) /*不能嵌套判断,改名为escape逃跑*/
+{
+    while((p->cw < p->count) && !strsame(p->array[p->cw],"}")){
         p->cw++;
     }
+
+    if(p->cw >= p->count){
+        ERROR_2("Expect a \"}\" to conclude IFCOND",\
+        p->array[p->cw],p->cw);
+    }
 }
-
-
-
 
 
 void parse_inc(Program *p)/*和parse_innum,parse_rnd 一样*/
@@ -703,24 +853,84 @@ void parse_inc(Program *p)/*和parse_innum,parse_rnd 一样*/
     p->cw++;
     check_var(p,'%');
     check_symbol(p,")");
-#ifdef INTERP
+    #ifdef INTERP
     interp_inc(p);
-#endif
+    #endif
+}
+void interp_inc (Program *p)
+{
+    float number;
+    char *temp;
+    p->cw--;
+    check_declare(p);
+    temp = mvm_search(p->map,p->array[p->cw]);
+
+    number = atof(temp);
+    number = number + OFFSET;
+    temp = (char *)calloc(DEFAULTSIZE*TWO,sizeof(char));
+    sprintf(temp,"%f",number);
+    if(temp[DEFAULTSIZE*TWO-OFFSET] !='\0'){
+        ERROR_2("Increasing number is out of bound",\
+        p->array[p->cw],p->cw);
+    }
+    insert_map(p,temp);
+    free(temp);
+    p->cw++;
 }
 void parse_set_variable(Program *p,char flag)
 {
+    char symbol;
     check_var(p,flag);
     check_symbol(p,"=");
     p->cw++;
-    if(flag == '%'){
-        check_numcon(p);
-    }else{
+    symbol = p->array[p->cw][FIRST];
+    if(symbol =='%'){
+        check_var(p,'%');
+
+    }else if (symbol == '$'){
+        check_var(p,'$');
+    }else if (symbol == '\"' || symbol == '#'){
         check_strcon(p);
+    }else{
+        check_numcon(p);
     }
     #ifdef INTERP
-    interp_set_var(p);
+    if(flag == '%'){
+        if(symbol != '%' && !(symbol <= '9' && symbol>='0') && symbol != '.'){
+            ERROR_2("Expect matched types of VARCON in SET",p->array[p->cw],p->cw);
+        }
+    }else if(flag == '$'){
+        if(symbol != '$' && symbol != '\"' && symbol !='#'){
+            ERROR_2("Expect matched types of VARCON in SET",p->array[p->cw],p->cw);
+        }
+    }
+    interp_set_var(p,symbol);
     #endif
 }
+void interp_set_var(Program *p,char symbol)
+{
+    char *temp;
+    if(symbol == '%' || symbol == '$'){
+        check_declare(p);
+        temp = mvm_search(p->map,p->array[p->cw]);
+        p->cw = p->cw - TWO;
+        if(mvm_search(p->map,p->array[p->cw]) != NULL){
+            mvm_delete(p->map,p->array[p->cw]);
+        }
+        mvm_insert(p->map,p->array[p->cw],temp);
+        p->cw = p->cw + TWO;
+    }else{
+        p->cw = p->cw - TWO;
+        if(mvm_search(p->map,p->array[p->cw]) != NULL){
+            mvm_delete(p->map,p->array[p->cw]);
+        }
+        mvm_insert(p->map,p->array[p->cw],p->array[p->cw+TWO]);
+        p->cw = p->cw + TWO;
+    }
+
+
+}
+
 
 void check_declare (Program *p)
 {
@@ -730,8 +940,6 @@ void check_declare (Program *p)
         ERROR_2("Please define variable before using :",p->array[p->cw],p->cw);
     }
 }
-
-
 
  char *take_quota(char *content)
  {
@@ -756,8 +964,7 @@ void check_declare (Program *p)
             str[i]=content[i];
         }
     }
-
-     return str;
+    return str;
  }
 char *translate_hashes(char *content)
 {
@@ -788,146 +995,17 @@ char *translate_hashes(char *content)
 }
 
 
-void interp_set_var(Program *p)
-{
-    p->cw = p->cw - TWO;
-    if(mvm_search(p->map,p->array[p->cw]) != NULL){
-        mvm_delete(p->map,p->array[p->cw]);
-    }
-    mvm_insert(p->map,p->array[p->cw],p->array[p->cw+TWO]);
-    p->cw = p->cw + TWO;
-}
-void interp_rnd(Program *p)
-{
-    char *data;
-    int random;
-    p->cw--;
-    data = (char *)calloc(3,sizeof(char));
-    if(data == NULL){
-        ERROR_1("Failed to allocate memory");
-    }
-    random = rand() % RNDBASE;
-    sprintf(data,"%d",random);
-    if(mvm_search(p->map,p->array[p->cw]) != NULL){
-        mvm_delete(p->map,p->array[p->cw]);
-    }
-    mvm_insert(p->map,p->array[p->cw],data);
-    free(data);
-    p->cw++;
-}
-
-void interp_innum(Program *p) /*怎么处理可能的越界,能否直接读一个str 而不是 float,然后判断str合不合法*/
-{
-    /*float number;*/
-    char *data;
-    int len;
-    int i;
-    int flag=0;
-    data = (char *)calloc(DEFAULTSIZE*TWO,sizeof(char));
-    p->cw--;
-    if(scanf("%s",data)!=1){
-        ERROR_2("Need input a float number",p->array[p->cw],p->cw);
-    }
-    /*sprintf(data,"%f",number);*/
-    if(data[DEFAULTSIZE*TWO-OFFSET] !='\0'){
-        ERROR_2("Scanned Float Number is too long, if you really need, "\
-                "please manually increase the allocated memory",p->array[p->cw-OFFSET],p->cw-OFFSET);
-    }
-    len = strlen(data);
-
-    for(i=0;i<len;i++){
-        if((data[i]<'0'||data[i]>'9')&&data[i]!='.'){
-            ERROR_2("Expect only digit or . in NUM",p->array[p->cw],p->cw);
-        }
-        if(data[i] =='.'){
-            flag++;
-        }
-        if(flag>1){
-            ERROR_2("No more than 1 dot in NUM",p->array[p->cw],p->cw);
-        }
-    }
-
-    if(mvm_search(p->map,p->array[p->cw]) != NULL){
-        mvm_delete(p->map,p->array[p->cw]);
-    }
-    mvm_insert(p->map,p->array[p->cw],data);
-    free(data);
-    p->cw++;
-}
-
-void interp_in2str(Program *p)/*怎么改成动态的*/
-{
-    char *str1 = calloc(DEFAULTSIZE*TWO,sizeof(char));
-    char *str2 = calloc(DEFAULTSIZE*TWO,sizeof(char));
-    if(scanf("%s %s",str1,str2)!=2){
-        ERROR_2("Need input two strings",p->array[p->cw],p->cw);
-    }
-    if(str1[DEFAULTSIZE*TWO-OFFSET] !='\0'){
-        ERROR_2("Scanned String is too long, if you really need, "\
-                "please manually increase the allocated memory",p->array[p->cw-OFFSET-TWO],p->cw-OFFSET-TWO);
-    }
-    if(str2[DEFAULTSIZE*2-OFFSET] !='\0'){
-        ERROR_2("Scanned String is too long, if you really need, "\
-                "please manually increase the allocated memory",p->array[p->cw-OFFSET],p->cw-OFFSET);
-    }
-    p->cw = p->cw -3;
-    if(mvm_search(p->map,p->array[p->cw]) != NULL){
-        mvm_delete(p->map,p->array[p->cw]);
-    }
-    mvm_insert(p->map,p->array[p->cw],str1);
-    p->cw = p->cw + 2;
-    if(mvm_search(p->map,p->array[p->cw]) != NULL){
-        mvm_delete(p->map,p->array[p->cw]);
-    }
-    mvm_insert(p->map,p->array[p->cw],str2);
-    free(str1);
-    free(str2);
-    p->cw++;
-}
 
 
 
 
-void interp_jump (Program *p)
-{
-    int len,i,number;
-    len = (int)strlen(p->array[p->cw]);
-    for(i=0;i<len;i++){
-        if(p->array[p->cw][i]=='.'){
-            ERROR_2("Must be a integer after JUMP :",\
-            p->array[p->cw],p->cw);
-        }
-    }
-    number = atoi(p->array[p->cw]);
-    if(number >= p->count){
-        ERROR_2("Jump number must be smaller than total count :",\
-        p->array[p->cw],p->cw);
-    }
-    p->cw = number - OFFSET;
-}
-/*
-void str2num (char *content)
-{
 
-}*/
 
-void interp_inc (Program *p)
-{
-    float number;
-    char *temp;
-    p->cw--;
-    check_declare(p);
-    temp = mvm_search(p->map,p->array[p->cw]);
 
-    number = atof(temp);
-    number = number + OFFSET;
-    temp = (char *)calloc(DEFAULTSIZE*2,sizeof(char));
-    if(temp[DEFAULTSIZE*TWO-OFFSET] !='\0'){
-        ERROR_2("Increasing number is out of bound",p->array[p->cw],p->cw);
-    }
-    sprintf(temp,"%f",number);
-    mvm_delete(p->map,p->array[p->cw]);
-    mvm_insert(p->map,p->array[p->cw],temp);
-    free(temp);
-    p->cw++;
-}
+
+
+
+
+
+
+

@@ -5,6 +5,7 @@
 
    IFEQUAL ( $D , #Arvyy# ) {
       PRINT #Uryyb Jbeyq!#
+	  FILE "test3.nal"
    }
 
 }

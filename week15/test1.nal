@@ -1,14 +1,10 @@
 {
-	$A = "GO"
-	%B = 12.1
-	PRINT %B
-	PRINT $A
-	FILE "test2.nal"
-	
-    IFEQUAL ( $A , "GO" ) {
+	$A = #123ABC#
+	%B = 123.132
+    IFEQUAL ( $A , "678NAaOP" ) {
 		PRINT "EQUAL"
 		$VA = "GO"
-
-   }
-	
 }
+	%C = %B
+}
+
