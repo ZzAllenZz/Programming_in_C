@@ -58,7 +58,7 @@ void free_program(Program *p);
 void check_argc(int argc);
 /*Check whether it has successfully allocated a memory location for char *str*/
 void check_allocate(char *str);
-/*Resize the array[p->cw]*/
+/*Resize the array according to p->count*/
 void resize_array(Program *p);
 
 
@@ -138,7 +138,7 @@ char *translate_hashes(char *content);
 void get_str(char **str);
 /*Insert a new key (if it has existed, delete previous one)into map*/
 void insert_map (Program *p, char *str);
-
+void first_test();
 
 void Prog(Program *p);
 void Instrs(Program *p);
@@ -162,6 +162,7 @@ int main(int argc,char **argv)
     printf("Parsed OK!\n");
     #endif
     free_program(&p);
+    first_test();
     return 0;
 }
 
@@ -190,12 +191,6 @@ void init_program(Program *p)
     p->lt->size = ONE;
 
 }
-/*void init_list(Program *p)
-{
-    p->lt = (List *)malloc(sizeof(List));
-    p->lt->prog[FIRST] = p;
-    p->lt->size = ONE;
-}*/
 
 void free_program(Program *p)
 {
@@ -325,6 +320,7 @@ void read_varcon(FILE *fp,Program *p)
         p->array[p->count-OFFSET],p->count-OFFSET);
     }
     str[i++] =c;
+
     if(c == '%' ||c == '$'||(c>='0'&&c<='9')||c == '.'){
         read_var_or_numcon(fp,str,p,i);
         /*free(str);*/
@@ -346,6 +342,7 @@ void read_var_or_numcon(FILE *fp,char *str,Program *p,int i)
         str[i]='\0';
     }
     p->array[p->count] = str;
+
 
 }
 void read_strcon(FILE *fp,char *str,Program *p,int i,char flag)

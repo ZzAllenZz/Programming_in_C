@@ -1,6 +1,6 @@
 {
 	$A = #123ABC#
-	%B = 123.132
+	%B = 123.132  
     IFEQUAL ( $A , "678NAaOP" ) {
 		PRINT "EQUAL"
 		$VA = "GO"

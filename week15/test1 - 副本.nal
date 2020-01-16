@@ -1,10 +1,10 @@
 {
    $A = "COOL"
    $B = #PBBY#
-   %B = 12
+   %B = 12  
    PRINT "Hello"
    PRINTN #Uv#
-   PRINT $A
+   PRINT $A  
    PRINTN %B
 }
 
