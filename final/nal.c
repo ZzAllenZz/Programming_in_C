@@ -147,7 +147,7 @@ void Instruct(Program *p);
 int main(int argc,char **argv)
 {
     Program p;
-    char *str;
+
     check_argc(argc);
     init_program(&p);
 
@@ -161,12 +161,8 @@ int main(int argc,char **argv)
     #else
     printf("Parsed OK!\n");
     #endif
-
-    str= mvm_print(p.map);
-    printf("%s\n",str);
-    free(str);
     free_program(&p);
-/*    first_test();*/
+    first_test();
     return 0;
 }
 
@@ -835,24 +831,16 @@ int is_meet(Program *p, char **str, int mark)
     return success;
 }
 
-void escape(Program *p)
+void escape(Program *p) /*不能嵌套判断,改名为escape逃跑*/
 {
-    int flag = ONE;
-    p->cw++;
-    while((p->cw < p->count) && flag != ZERO){
-        if(strsame(p->array[p->cw],"{")){
-            flag++;
-        }
-        if(strsame(p->array[p->cw],"}")){
-            flag--;
-        }
+    while((p->cw < p->count) && !strsame(p->array[p->cw],"}")){
         p->cw++;
     }
+
     if(p->cw >= p->count){
         ERROR_2("Expect a \"}\" to conclude IFCOND",\
         p->array[p->cw],p->cw);
     }
-    p->cw--;
 }
 
 

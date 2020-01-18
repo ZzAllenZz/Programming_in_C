@@ -1,14 +1,14 @@
 CFLAGS = -O2 -Wall -Wextra -Wfloat-equal -pedantic -ansi -lm
 DFLAGS = -g3 -Wall -Wextra -Wfloat-equal -pedantic -ansi -lm
 SFLAGS = -g3 -fsanitize=undefined -fsanitize=address
-TESTBASE = nal
-INCS = mvm.h
-SOURCES =  $(TESTBASE).c mvm.c
+TESTBASE = extent
+INCS = mvm.h nal.h
+SOURCES =  $(TESTBASE).c mvm.c RPN.c
 EXECS = $(TESTBASE) $(TESTBASE)_d $(TESTBASE)_s
 CC = clang
 
 run: $(TESTBASE)
-	./$(TESTBASE) escape211.nal
+	./$(TESTBASE) test1.nal
 
 all: $(EXECS)
 
@@ -26,7 +26,7 @@ clean:
 
 memleaks: $(TESTBASE)_d $(TESTBASE)_s
 	@echo "Sanitize :"
-	@./$(TESTBASE)_s escape211.nal
+	@./$(TESTBASE)_s test1.nal
 	@echo "Valgrind :"
-	@valgrind --leak-check=full ./$(TESTBASE)_d escape211.nal
+	@valgrind --leak-check=full ./$(TESTBASE)_d test1.nal
 

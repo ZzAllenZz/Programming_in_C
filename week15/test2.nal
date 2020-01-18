@@ -1,11 +1,10 @@
 {
 
-   $D = "Neill"
+   $A = "Neill"
    %E = 12.4 
 
-   IFEQUAL ( $D , #Arvyy# ) {
+   IFEQUAL ( $A , #Arvyy# ) {
       PRINT #Uryyb Jbeyq!#
-	  FILE "test3.nal"
    }
 
 }

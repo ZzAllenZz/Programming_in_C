@@ -36,6 +36,8 @@ e.g. Expect a closing # to finish STRCON...
 
 
 
+
+
 IN2STR INNUM
 in interpreter,
 1.used getchar() to get input to allow dynamic allocation
@@ -57,3 +59,10 @@ in interpreter,
 the type must be matched.
 in other words, STRVAR = STRVAR || STRVAR = STRCON ||NUMVAR = NUMVAR||NUMVAR = NUMCON
 And also, if R-value is var, it must be declared before used.
+
+
+RPNOPE
+%An arithmetic operation in reverse polish notion
+% RPNOPE %A = { %B 12.35 + %C / }
+% which means %A = (%B+12.35)/%C in Infix notion
+%<RPNOPE>:="RPNOPE" NUMVAR "=" "{" NUMVAR|NUMCON|"+"|"-"|"*"|"/" "}"

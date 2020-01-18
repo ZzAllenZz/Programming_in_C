@@ -120,6 +120,13 @@ void interp_inc (Program *p);
 void parse_set_variable(Program *p,char flag);
 void interp_set_var(Program *p,char symbol);
 
+void parse_rpnope(Program *p);
+void interp_rpnope(Program *p,int var_location, int start,int finish);
+
+
+
+
+
 /*check_...function is used to ensure the input is valid
  * if not, report an error*/
 void check_symbol(Program *p, char* symbol);
@@ -138,7 +145,11 @@ char *translate_hashes(char *content);
 void get_str(char **str);
 /*Insert a new key (if it has existed, delete previous one)into map*/
 void insert_map (Program *p, char *str);
-void first_test();
+
+
+int is_operation(char ope);
+void compute(Program *p, int start, int finish);
+void is_rpnope(FILE *fp, Program *p);
 
 void Prog(Program *p);
 void Instrs(Program *p);
@@ -147,11 +158,15 @@ void Instruct(Program *p);
 int main(int argc,char **argv)
 {
     Program p;
+    int i;
     char *str;
     check_argc(argc);
     init_program(&p);
 
     input_in_array(&p,argv[SECOND]);
+    for(i=0;i<p.count;i++){
+        printf("%s\n",p.array[i]);
+    }
     #ifdef INTERP
     srand((unsigned)time(NULL));
     #endif
@@ -162,11 +177,10 @@ int main(int argc,char **argv)
     printf("Parsed OK!\n");
     #endif
 
-    str= mvm_print(p.map);
+    str = mvm_print(p.map);
     printf("%s\n",str);
     free(str);
     free_program(&p);
-/*    first_test();*/
     return 0;
 }
 
@@ -240,10 +254,12 @@ void input_in_array(Program *p,char *filename)
             ERROR_2("This instruction's length should be less than Default Size (20) : ",\
             p->array[p->count],p->count);
         }
+
         is_print(fp,p);
         is_setvar(fp,p);
         is_ifcond(fp,p);
         is_file(fp,p);
+        is_rpnope(fp,p);
         p->count++;
         resize_array(p);
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
@@ -251,6 +267,19 @@ void input_in_array(Program *p,char *filename)
     }
     fclose(fp);
 }
+
+void is_rpnope(FILE *fp, Program *p)
+{
+    if(!strsame(p->array[p->count],"RPNOPE")){
+        return;
+    }
+    p->count++;
+    resize_array(p);
+    read_varcon(fp,p);
+}
+
+
+
 
 void is_print(FILE *fp,Program *p)
 {
@@ -332,6 +361,7 @@ void read_varcon(FILE *fp,Program *p)
     }else if(c=='#'||c == '\"'){
         read_strcon(fp,str,p,i,c);
     }else{
+
         ERROR_2("Illegal input for VARCON after ",\
         p->array[p->count-OFFSET],p->count-OFFSET);
     }
@@ -431,6 +461,10 @@ void Instruct(Program *p)
     }
     if(p->array[p->cw][FIRST]=='%' || p->array[p->cw][FIRST] == '$'){
         parse_set_variable(p,p->array[p->cw][FIRST]);
+        return;
+    }
+    if(strsame(p->array[p->cw],"RPNOPE")){
+        parse_rpnope(p);
         return;
     }
 
@@ -821,7 +855,7 @@ int is_meet(Program *p, char **str, int mark)
     if(strsame(str[ZERO],"IFEQUAL") && mark == 0){
         num1 = atof(str[ONE]);
         num2 = atof(str[TWO]);
-        success = (fabs((double)(num1-num2))<=0.0005);
+        success = (fabs((double)(num1-num2))<=0.000005);
     }else if (strsame(str[ZERO],"IFEQUAL") && mark == 2){
         success = strsame(str[ONE],str[TWO]);
     }else if (strsame(str[ZERO],"IFGREATER") && mark == 0){
@@ -835,24 +869,16 @@ int is_meet(Program *p, char **str, int mark)
     return success;
 }
 
-void escape(Program *p)
+void escape(Program *p) /*不能嵌套判断,改名为escape逃跑*/
 {
-    int flag = ONE;
-    p->cw++;
-    while((p->cw < p->count) && flag != ZERO){
-        if(strsame(p->array[p->cw],"{")){
-            flag++;
-        }
-        if(strsame(p->array[p->cw],"}")){
-            flag--;
-        }
+    while((p->cw < p->count) && !strsame(p->array[p->cw],"}")){
         p->cw++;
     }
+
     if(p->cw >= p->count){
         ERROR_2("Expect a \"}\" to conclude IFCOND",\
         p->array[p->cw],p->cw);
     }
-    p->cw--;
 }
 
 
@@ -1007,8 +1033,50 @@ char *translate_hashes(char *content)
 
 
 
+void parse_rpnope(Program *p)
+{
+    int temp0,temp1,temp2;/*record the index of "{" and "}"*/
+    char mark;
+    p->cw++;
+    check_var(p,'%');
+    temp0 = p->cw;
+    check_symbol(p,"=");
+    check_symbol(p,"{");
+    p->cw++;
+    temp1 = p->cw;
 
+    while((p->cw<p->count) && p->array[p->cw][FIRST] != '}'){
+        mark = p->array[p->cw][FIRST];
+        if(mark =='%'){
+            check_var(p,'%');
+        }else if((mark>='0'&&mark <='9')|| mark =='.'){
 
+            check_numcon(p);
+        }else if (is_operation(mark)==0){
+
+            ERROR_2("Ilegal input in RPNOPE",p->array[p->cw],p->cw);
+        }
+        p->cw++;
+    }
+
+    if(p->cw >= p->count){
+        ERROR_2("Expect a \"}\" to conclude RPNOPE",\
+        p->array[p->cw],p->cw);
+    }
+    temp2 = --(p->cw);
+    p->cw++;
+#ifdef INTERP
+    interp_rpnope(p,temp0,temp1,temp2);
+#endif
+
+}
+void interp_rpnope(Program *p,int var_location, int start,int finish)
+{
+    int temp = p->cw;
+    p->cw = var_location;
+    compute(p,start,finish);
+    p->cw = temp;
+}
 
 
 
