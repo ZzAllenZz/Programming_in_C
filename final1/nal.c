@@ -6,8 +6,7 @@
 #include <math.h>
 #include "mvm.h"
 
-/*Used in List, Max number of Programs that can conduct simultaneously */
-#define LIST_SIZE 256
+#define LIST_SIZE 256 /*Max number of Programs that can conduct simultaneously  */
 #define DEFAULTSIZE  20 /*Default size of array[p->cw]*/
 
 #define REQUIRED 2 /*Required arguments in command line*/
