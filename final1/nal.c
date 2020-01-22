@@ -36,7 +36,7 @@ fprintf(stderr,"%s %s (WORD %d) in %s, line %d\n",\
 EXPLAIN,WORD,NUMBER,__FILE__,__LINE__);\
 exit(2);\
 }
-typedef bool int
+typedef int bool;
 #define TRUE 1
 #define FALSE 0
 
@@ -146,6 +146,10 @@ void test();
 void Prog(Program *p);
 void Instrs(Program *p);
 void Instruct(Program *p);
+
+bool is_strcon(char *str);
+bool is_numcon(char *str);
+bool is_var(char *str,char flag);
 
 int main(int argc,char **argv)
 {
@@ -453,55 +457,68 @@ void check_symbol(Program *p, char* symbol)
     }
 }
 
-
-
 void check_strcon(Program *p)
 {
-    int len = (int)strlen(p->array[p->cw]);
-    if(p->array[p->cw][FIRST]=='\"'){
-        if(p->array[p->cw][len-OFFSET]!='\"'){
-            ERROR_2("Expect a closing \" to finish STRCON :",p->array[p->cw],p->cw);
-        }
-    }else if(p->array[p->cw][FIRST]=='#'){
-        if(p->array[p->cw][len-OFFSET]!='#'){
-            ERROR_2("Expect a closing # to finish STRCON :",p->array[p->cw],p->cw);
-        }
-    }else{
-        ERROR_2("Expect a beginning \" or # to start STRCON :",p->array[p->cw],p->cw);
+    if(!is_strcon(p->array[p->cw])){
+        ERROR_2("It is not a STRCON:",p->array[p->cw],p->cw);
     }
+}
+bool is_strcon(char *str)
+{
+    int len = (int)strlen(str);
+    if(str[FIRST]!= '\"'&& str[FIRST]!= '#'){
+        return FALSE;
+    }
+    if(str[FIRST]!=str[len-OFFSET]){
+        return FALSE;
+    }
+    return TRUE;
 }
 
 void check_numcon(Program *p)
 {
-    int len = (int)strlen(p->array[p->cw]);
-    int i;
-    int flag = 0;
-    for(i=0;i<len;i++){
-        if((p->array[p->cw][i]<'0'||p->array[p->cw][i]>'9')&&p->array[p->cw][i]!='.'){
-            ERROR_2("Expect only digit or . in NUMCON",p->array[p->cw],p->cw);
-        }
-        if(p->array[p->cw][i] =='.'){
-            flag++;
-        }
-        if(flag>1){
-            ERROR_2("No more than 1 dot in NUMCON",p->array[p->cw],p->cw);
-        }
-    }
-}
-void check_var(Program *p,char flag)
-{
-    int len = (int)strlen(p->array[p->cw]);
-    int i;
-    if(p->array[p->cw][FIRST] != flag){
-        ERROR_2("Expect a matched \"%\" or \"$\" to start VAR",p->array[p->cw],p->cw);
-    }
-    for(i=1;i<len;i++){
-        if(p->array[p->cw][i]<'A'||p->array[p->cw][i]>'Z'){
-            ERROR_2("Expect only [A-Z]+ in VAR",p->array[p->cw],p->cw);
-        }
+    if(!is_numcon(p->array[p->cw])){
+        ERROR_2("It is not a NUMCON:",p->array[p->cw],p->cw);
     }
 }
 
+bool is_numcon(char *str)
+{
+    int i,flag = 0,len = (int)strlen(str);
+    for(i=0;i<len;i++){
+        if((str[i]<'0'||str[i]>'9')&&str[i]!='.'){
+            return FALSE;
+        }
+        if(str[i] =='.'){
+            flag++;
+        }
+        if(flag>1){
+            return FALSE;
+        }
+    }
+    return TRUE;;
+}
+
+void check_var(Program *p,char flag)
+{
+    if(!is_var(p->array[p->cw],flag)){
+        ERROR_2("It is an illegal VAR:",p->array[p->cw],p->cw);
+    }
+}
+bool is_var(char *str,char flag)
+{
+    int len = (int)strlen(str);
+    int i;
+    if(str[FIRST] != flag){
+        return FALSE;
+    }
+    for(i=1;i<len;i++){
+        if(str[i]<'A'||str[i]>'Z'){
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
 void parse_file(Program *p)
 {
     p->cw++;
@@ -957,7 +974,8 @@ void check_declare (Program *p)
    char *str;
    str = mvm_search(p->map,p->array[p->cw]);
    if(str == NULL){
-        ERROR_2("Please define variable before using :",p->array[p->cw],p->cw);
+        ERROR_2("Please define variable before using :",\
+        p->array[p->cw],p->cw);
     }
 }
 

@@ -20,6 +20,12 @@
 #define ROT13 13
 #define ROT5 5
 #define strsame(A,B) (strcmp((A),(B))==0)
+
+typedef int bool;
+#define TRUE 1
+#define FALSE 0
+
+
 #define ERROR_1(PHRASE) {\
 fprintf(stderr,"Fatal Error: %s occured in %s, line %d\n",\
 PHRASE,__FILE__,__LINE__);\
@@ -99,3 +105,7 @@ int is_meet(Program *p, char **str, int mark);
 void Prog(Program *p);
 void Instrs(Program *p);
 void Instruct(Program *p);
+
+bool is_strcon(char *str);
+bool is_numcon(char *str);
+bool is_var(char *str,char flag);

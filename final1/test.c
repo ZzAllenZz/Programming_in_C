@@ -9,6 +9,9 @@ void test_resize_array();
 void test_read_varcon();
 void test_is_xxx();
 void test_input_in_array();
+void test_parse_print();
+void test_parse_and_interp_file();
+void test_parse_and_interp_jump();
 void test()
 {
 
@@ -20,6 +23,9 @@ void test()
     test_read_varcon();
     test_is_xxx();
     test_input_in_array();
+    test_parse_print();
+    test_parse_and_interp_file();
+    test_parse_and_interp_jump();
 /*    init_program(&p);
     assert(p.cw == 0);
     assert(p.count == 0);
@@ -341,3 +347,105 @@ void test_input_in_array()
     assert(i);
     free_program(&p);
 }
+
+void test_parse_print()
+{
+    Program p;
+    int i;
+    init_program(&p);
+    input_in_array(&p,"parse_print.testf");
+    p.cw = ONE;
+    parse_print(&p);
+    assert(p.cw==TWO);
+    i = is_strcon(p.array[p.cw]);
+    assert(i);
+    p.cw = THREE;
+    parse_print(&p);
+    i = is_strcon(p.array[p.cw]);
+    assert(i);
+    assert(p.cw==4);
+
+
+    p.cw = 8;
+    parse_print(&p);
+    i = is_var(p.array[p.cw],'$');
+    assert(i);
+    assert(p.cw==9);
+
+    p.cw = 13;
+    parse_print(&p);
+    i = is_var(p.array[p.cw],'%');
+    assert(i);
+    assert(p.cw==14);
+    free_program(&p);
+}
+
+void test_parse_and_interp_file()
+{
+    Program p;
+    int i;
+    char *str;
+    init_program(&p);
+    input_in_array(&p,"parse_file.testf");
+
+    p.cw = ONE;
+    parse_file(&p);
+    assert(p.cw==TWO);
+    i = is_strcon(p.array[p.cw]);
+    assert(i);
+
+    /*test function of interp_file */
+    interp_file(&p);
+    assert(p.cw==2);
+
+    p.cw = THREE;
+    parse_print(&p);
+    i = is_strcon(p.array[p.cw]);
+    assert(i);
+    assert(p.cw==4);
+
+    str = translate_hashes("#nopqrstuvwxyzabcdefghijklm#");
+    i = strsame(str,"\"abcdefghijklmnopqrstuvwxyz\"");
+    assert(i);
+    free(str);
+    str = translate_hashes("#NOPQRSTUVWXYZABCDEFGHIJKLM#");
+    i = strsame(str,"\"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"");
+    assert(i);
+    free(str);
+    str = translate_hashes("#5678901234#");
+    i = strsame(str,"\"0123456789\"");
+    assert(i);
+
+    free(str);
+    free_program(&p);
+}
+
+void test_parse_and_interp_jump()
+{
+    Program p;
+    int i;
+    init_program(&p);
+    input_in_array(&p,"parse_file.testf");
+    p.cw = 5;
+    parse_jump(&p);
+    assert(p.cw==6);
+    i = is_numcon(p.array[p.cw]);
+    assert(i);
+
+    p.cw = 6;
+    interp_jump(&p);
+    /*JUMP 2 make p.cw = 1
+     * because p.cw will +1 before it goes into next Instruct;
+     * */
+    assert(p.cw==1);
+
+    free_program(&p);
+}
+
+
+void test_function_with_return_value()
+{
+
+}
+
+

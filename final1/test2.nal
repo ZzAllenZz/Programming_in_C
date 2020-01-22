@@ -1,8 +1,8 @@
 {
 	
 	$A = "Neill"
-	%B = 100
-
+	%B = .10
+	$C = $A
    IFEQUAL ( $A , #Arvyy# ) {
       PRINT #Uryyb Jbeyq!#
    }

@@ -13,13 +13,13 @@ run: $(TESTBASE)
 all: $(EXECS)
 
 $(TESTBASE): $(SOURCES) $(INCS)
-	$(CC) $(SOURCES) -o $@ $(CFLAGS) -DINTERP
+	$(CC) $(SOURCES) -o $@ $(CFLAGS)
 
 $(TESTBASE)_d: $(SOURCES)
-	$(CC) $(SOURCES) -o $@ $(DFLAGS) -DINTERP
+	$(CC) $(SOURCES) -o $@ $(DFLAGS)
 
 $(TESTBASE)_s: $(SOURCES)
-	$(CC) $(SOURCES) -o $@ $(SFLAGS) -DINTERP
+	$(CC) $(SOURCES) -o $@ $(SFLAGS)
 
 clean:
 	rm -f $(EXECS)
