@@ -1,7 +1,7 @@
 {
-
-   $A = "Neill"
-   %E = 12.4 
+	
+	$A
+	PRINT "sadas adasd" 
 
    IFEQUAL ( $A , #Arvyy# ) {
       PRINT #Uryyb Jbeyq!#

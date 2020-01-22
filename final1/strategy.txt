@@ -66,3 +66,8 @@ RPNOPE
 % RPNOPE %A = { %B 12.35 + %C / }
 % which means %A = (%B+12.35)/%C in Infix notion
 %<RPNOPE>:="RPNOPE" NUMVAR "=" "{" NUMVAR|NUMCON|"+"|"-"|"*"|"/" "}"
+
+
+心得
+1.linux下和windows下的文本编辑 \n \t \r
+2.abort

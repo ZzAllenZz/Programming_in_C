@@ -279,6 +279,9 @@ void is_setvar(FILE *fp,Program *p)
         ERROR_1("Need a closing } to finish file");
     }
     if(!strsame(p->array[p->count],"=")){
+        free(p->array[p->count]);
+        p->count--;
+        resize_array(p);
         return;
     }
     p->count++;
@@ -320,7 +323,7 @@ void read_varcon(FILE *fp,Program *p)
     char *str = (char *)calloc(TWO,sizeof(char));
     check_allocate(str);
 
-    while(((c=getc(fp))==' '|| c =='\n')&& c != EOF);
+    while(((c=getc(fp))==' '|| c =='\n'||c == '\t'||c == '\r')&& c != EOF);
     if(c==EOF){
         ERROR_2("Expect beginning \" or # or % or $ or digit to start VARCON after ",\
         p->array[p->count-OFFSET],p->count-OFFSET);
@@ -341,7 +344,7 @@ void read_varcon(FILE *fp,Program *p)
 void read_var_or_numcon(FILE *fp,char *str,Program *p,int i)
 {
     int c;
-    while((c=getc(fp))!=' '&& c!= '\n'&& c!=EOF){
+    while((c=getc(fp))!=' '&& c!= '\n'&& c!= '\t'&&c!= '\r'&& c!=EOF){
         str = (char *)realloc(str,(strlen(str)+TWO)* sizeof(char));
         check_allocate(str);
         str[i++]=c;
