@@ -36,6 +36,9 @@ fprintf(stderr,"%s %s (WORD %d) in %s, line %d\n",\
 EXPLAIN,WORD,NUMBER,__FILE__,__LINE__);\
 exit(2);\
 }
+typedef bool int
+#define TRUE 1
+#define FALSE 0
 
 typedef struct program{
     char **array;/*Used to store tokens*/
@@ -171,8 +174,8 @@ int main(int argc,char **argv)
 }
 void init_program(Program *p)
 {
-    p->cw=0;
-    p->count=0;
+    p->cw=ZERO;
+    p->count=ZERO;
 
     /*Initialize the map*/
     p->map = mvm_init();
@@ -207,6 +210,7 @@ void free_program(Program *p)
     free(p->lt);
     p->lt = NULL;
 }
+
 void check_argc(int argc)
 {
     if(argc<REQUIRED){
@@ -216,6 +220,7 @@ void check_argc(int argc)
         ERROR_1("Too many arguments in command line");
     }
 }
+
 void check_allocate(char *str)
 {
     if(str==NULL){
@@ -239,8 +244,8 @@ void input_in_array(Program *p,char *filename)
     }
     while(fscanf(fp,"%s",p->array[p->count])==1){
         if(p->array[p->count][DEFAULTSIZE-OFFSET] != '\0'){
-            ERROR_2("This instruction's length should be less than Default Size (20) : ",\
-            p->array[p->count],p->count);
+            ERROR_2("This instruction's length should be less than "
+                    "Default Size (20) : ",p->array[p->count],p->count);
         }
         is_print(fp,p);
         is_setvar(fp,p);
@@ -269,7 +274,6 @@ void is_setvar(FILE *fp,Program *p)
     if(p->array[p->count][FIRST]!='$'&&p->array[p->count][FIRST]!='%'){
         return;
     }
-
     p->count++;
     resize_array(p);
     p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
@@ -279,9 +283,6 @@ void is_setvar(FILE *fp,Program *p)
         ERROR_1("Need a closing } to finish file");
     }
     if(!strsame(p->array[p->count],"=")){
-        free(p->array[p->count]);
-        p->count--;
-        resize_array(p);
         return;
     }
     p->count++;
@@ -294,12 +295,12 @@ void is_ifcond(FILE *fp,Program *p)
     if(!strsame(p->array[p->count],"IFEQUAL")&&!strsame(p->array[p->count],"IFGREATER")){
         return;
     }
-    for(i=0;i<TWO;i++){
+    for(i=ZERO;i<TWO;i++){
         p->count++;
         resize_array(p);
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
         check_allocate(p->array[p->count]);
-        if(fscanf(fp,"%s",p->array[p->count])!=1){
+        if(fscanf(fp,"%s",p->array[p->count])!=ONE){
             ERROR_1("Need a closing } to finish file");
         }
         p->count++;
@@ -316,13 +317,18 @@ void is_file(FILE *fp, Program *p) /*可以用read_varcon吗,可以，之后再*
     resize_array(p);
     read_varcon(fp,p);
 }
+/*Used to read the VARCON into p->array[p->count];
+ * we need to use c=getc(fp) to catch since we need to deal with space ' ' '\n' '\r' '\t'
+ * and after the if statement, it will divided into read_var_or_numcon or read_strcon
+ * also, we need dynamic size for these.
+ * */
 void read_varcon(FILE *fp,Program *p)
 {
     char c;
     int i = FIRST; /*Used for the index of str*/
     char *str = (char *)calloc(TWO,sizeof(char));
-    check_allocate(str);
-
+    check_allocate(str);/*str is used to receive VARCON, dynamic size */
+    /*Discard ' ' '\n''\r''\t'*/
     while(((c=getc(fp))==' '|| c =='\n'||c == '\t'||c == '\r')&& c != EOF);
     if(c==EOF){
         ERROR_2("Expect beginning \" or # or % or $ or digit to start VARCON after ",\
@@ -331,15 +337,13 @@ void read_varcon(FILE *fp,Program *p)
     str[i++] =c;
     if(c == '%' ||c == '$'||(c>='0'&&c<='9')||c == '.'){
         read_var_or_numcon(fp,str,p,i);
-        /*free(str);*/
-        /*不需要再free str 因为 指针指向的是堆，当read_var_or_num函数中reallocate，原来这块地方已经free了*/
+        /*free(str); no need to free, because realloc will free previous one*/
     }else if(c=='#'||c == '\"'){
         read_strcon(fp,str,p,i,c);
     }else{
         ERROR_2("Illegal input for VARCON after ",\
         p->array[p->count-OFFSET],p->count-OFFSET);
     }
-
 }
 void read_var_or_numcon(FILE *fp,char *str,Program *p,int i)
 {
@@ -351,8 +355,6 @@ void read_var_or_numcon(FILE *fp,char *str,Program *p,int i)
         str[i]='\0';
     }
     p->array[p->count] = str;
-
-
 }
 void read_strcon(FILE *fp,char *str,Program *p,int i,char flag)
 {
@@ -450,6 +452,9 @@ void check_symbol(Program *p, char* symbol)
         exit(2);
     }
 }
+
+
+
 void check_strcon(Program *p)
 {
     int len = (int)strlen(p->array[p->cw]);
@@ -465,6 +470,7 @@ void check_strcon(Program *p)
         ERROR_2("Expect a beginning \" or # to start STRCON :",p->array[p->cw],p->cw);
     }
 }
+
 void check_numcon(Program *p)
 {
     int len = (int)strlen(p->array[p->cw]);

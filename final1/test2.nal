@@ -1,7 +1,7 @@
 {
 	
-	$A
-	PRINT "sadas adasd" 
+	$A = "Neill"
+	%B = 100
 
    IFEQUAL ( $A , #Arvyy# ) {
       PRINT #Uryyb Jbeyq!#

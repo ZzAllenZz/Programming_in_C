@@ -71,3 +71,7 @@ RPNOPE
 心得
 1.linux下和windows下的文本编辑 \n \t \r
 2.abort
+3.读文件时候的处理，fsanf to getc
+4.varcon has dynamic size
+5.分步解决， like FSM
+6.不用返回值的原因，报错不方便，不知道具体哪种错误 “#
