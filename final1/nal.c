@@ -138,7 +138,7 @@ char *translate_hashes(char *content);
 void get_str(char **str);
 /*Insert a new key (if it has existed, delete previous one)into map*/
 void insert_map (Program *p, char *str);
-void first_test();
+void test();
 
 void Prog(Program *p);
 void Instrs(Program *p);
@@ -157,7 +157,7 @@ int main(int argc,char **argv)
     #endif
     Prog(&p);
     #ifdef INTERP
-    printf("Interpreted OK!\n");
+   /* printf("Interpreted OK!\n");*/
     #else
     printf("Parsed OK!\n");
     #endif
@@ -166,10 +166,9 @@ int main(int argc,char **argv)
     printf("%s\n",str);
     free(str);
     free_program(&p);
-/*    first_test();*/
+    test();
     return 0;
 }
-
 void init_program(Program *p)
 {
     p->cw=0;
@@ -203,8 +202,10 @@ void free_program(Program *p)
         free(p->array[i]);
     }
     free(p->array);
+    p->array = NULL;
     mvm_free(&(p->map));
     free(p->lt);
+    p->lt = NULL;
 }
 void check_argc(int argc)
 {
@@ -221,6 +222,7 @@ void check_allocate(char *str)
         ERROR_1("Cannot allocate memory");
     }
 }
+
 void resize_array(Program *p)
 {
     p->array = (char **)realloc(p->array,(p->count+OFFSET)*sizeof(char*));
@@ -313,18 +315,17 @@ void is_file(FILE *fp, Program *p) /*可以用read_varcon吗,可以，之后再*
 }
 void read_varcon(FILE *fp,Program *p)
 {
-    int c;
+    char c;
     int i = FIRST; /*Used for the index of str*/
     char *str = (char *)calloc(TWO,sizeof(char));
     check_allocate(str);
 
-    while((c=getc(fp))==' '&& c != EOF);
+    while(((c=getc(fp))==' '|| c =='\n')&& c != EOF);
     if(c==EOF){
         ERROR_2("Expect beginning \" or # or % or $ or digit to start VARCON after ",\
         p->array[p->count-OFFSET],p->count-OFFSET);
     }
     str[i++] =c;
-
     if(c == '%' ||c == '$'||(c>='0'&&c<='9')||c == '.'){
         read_var_or_numcon(fp,str,p,i);
         /*free(str);*/
@@ -335,6 +336,7 @@ void read_varcon(FILE *fp,Program *p)
         ERROR_2("Illegal input for VARCON after ",\
         p->array[p->count-OFFSET],p->count-OFFSET);
     }
+
 }
 void read_var_or_numcon(FILE *fp,char *str,Program *p,int i)
 {
