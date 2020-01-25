@@ -68,6 +68,11 @@ RPNOPE
 % RPNOPE %A = { %B 12.35 + %C / }
 % which means %A = (%B+12.35)/%C in Infix notion
 %<RPNOPE>:="RPNOPE" NUMVAR "=" "{" NUMVAR|NUMCON|"+"|"-"|"*"|"/" "}"
+In parser, as along as it meets the grammar, it will parsed ok~
+we do not care about whether this reverse polish notion is an valid one
+In interpreter, we will check whether this notion is valid and meanwhile compute result
+
+SWP
 
 
 心得

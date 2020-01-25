@@ -4,7 +4,7 @@
 #include<assert.h>
 #include<time.h>
 #include <math.h>
-#include "mvm.h"
+#include "mvm.h" 
 
 #define LIST_SIZE 256 /*Max number of Programs that can conduct simultaneously  */
 #define DEFAULTSIZE  20 /*Default size of array[p->cw]*/
@@ -1080,7 +1080,39 @@ void interp_rpnope(Program *p,int var_location, int start,int finish)
 
 
 
-
+void compute(Program *p, int start, int finish)
+{
+    int i;
+    Stack *s;
+    char *str1, *str2;
+    float num1,num2,num3;
+    char *str3[MAXSIZE];
+    for(i=0;i<MAXSIZE;i++){
+        str3[i] = calloc(DEFAULTSIZE*TWO,sizeof(char));
+    }
+    s = init_stack();
+    for(i=start;i<=finish;i++){
+        if(is_operation(p->array[i][FIRST])){
+            pop_stack(s,&str1);
+            pop_stack(s,&str2);
+            num1 = atof(str1);
+            num2 = atof(str2);
+            num3 = operation(p->array[i][FIRST],num1,num2);
+            sprintf(str3[s->top],"%f",num3);
+            push_stack(s,str3[s->top]);
+        }else if (p->array[i][FIRST] == '%'){
+            str1 = mvm_search(p->map,p->array[i]);
+            push_stack(s,str1);
+        }else{
+            push_stack(s,p->array[i]);
+        }
+    }
+    insert_map(p,s->data[s->top-OFFSET]);
+    free(s);
+    for(i=0;i<MAXSIZE;i++){
+        free(str3[i]);
+    }
+}
 
 
 

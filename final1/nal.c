@@ -1,160 +1,8 @@
-#include <stdlib.h>
-#include<stdio.h>
-#include<string.h>
-#include<assert.h>
-#include<time.h>
-#include <math.h>
-#include "mvm.h"
-
-#define LIST_SIZE 256 /*Max number of Programs that can conduct simultaneously  */
-#define DEFAULTSIZE  20 /*Default size of array[p->cw]*/
-
-#define REQUIRED 2 /*Required arguments in command line*/
-#define OFFSET 1 /*One location offset*/
-
-#define FIRST 0 /*For indexing*/
-#define SECOND 1 /*For indexing*/
-
-#define ZERO 0
-#define ONE 1
-#define TWO 2
-#define THREE 3
-
-#define RNDBASE 100 /*Used in RND*/
-
-#define ROT13 13
-#define ROT5 5
-#define strsame(A,B) (strcmp((A),(B))==0)
-
-#define ERROR_1(PHRASE) {\
-fprintf(stderr,"Fatal Error: %s occured in %s, line %d\n",\
-PHRASE,__FILE__,__LINE__);\
-exit(1);\
-}
-#define ERROR_2(EXPLAIN,WORD,NUMBER){\
-fprintf(stderr,"%s %s (WORD %d) in %s, line %d\n",\
-EXPLAIN,WORD,NUMBER,__FILE__,__LINE__);\
-exit(2);\
-}
-typedef int bool;
-#define TRUE 1
-#define FALSE 0
-
-typedef struct program{
-    char **array;/*Used to store tokens*/
-    mvm *map;/*Used to store VAR*/
-    int count;/*Total tokens read in*/
-    int cw;/*Current word to index token in recursion*/
-    struct list *lt;
-    /*A structure of list used to record how many Programs created*/
-} Program;
-
-typedef struct list{
-    Program *prog[LIST_SIZE]; /*An array of pointer of Program */
-    int size;
-} List;
-
-
-void init_program(Program *p);
-void free_program(Program *p);
-/*Check the arguments in command line == 2 */
-void check_argc(int argc);
-/*Check whether it has successfully allocated a memory location for char *str*/
-void check_allocate(char *str);
-/*Resize the array according to p->count*/
-void resize_array(Program *p);
-
-
-/*Read in tokens from file to p->array */
-void input_in_array(Program *p,char *filename);
-/*is_... functions exist mainly because we need to deal with space ' ' in VARCON */
-/*Deal with when token is "PRINT" OR "PRINTN" */
-void is_print(FILE *fp,Program *p);
-/*Deal with when token is to SET VAR*/
-void is_setvar(FILE *fp,Program *p);
-/*Deal with when token is "IFEQUAL" or "IFGREATER"*/
-void is_ifcond(FILE *fp,Program *p);
-/*Deal with when token is "FILE"*/
-void is_file(FILE *fp, Program *p);
-
-
-/*Put VARCON from file to p->array*/
-void read_varcon(FILE *fp,Program *p);
-/*Nested in read_varcon*/
-void read_var_or_numcon(FILE *fp,char *str,Program *p,int i);
-/*Nested in read_varcon*/
-void read_strcon(FILE *fp,char *str,Program *p,int i,char flag);
-
-
-void parse_file(Program *p);
-void interp_file(Program *p);
-
-void interp_abort(Program *p);
-
-void parse_in2str(Program *p);
-void interp_in2str(Program *p);
-
-void parse_innum(Program *p);
-void interp_innum(Program *p);
-
-void parse_jump(Program *p);
-void interp_jump (Program *p);
-
-void parse_print(Program *p);
-void interp_print(Program *p);
-
-void parse_rnd(Program *p);
-void interp_rnd(Program *p);
-
-void parse_ifcondition(Program *p);
-void interp_ifcondition(Program *p);
-/*Store two VARCONs in ifcond
- *mark is used to present whether two VARCONs are matched*/
-void is_ifmatched(Program *p, char **str,int *mark);
-/*Used to present whether IFCOND is met*/
-bool is_meet(Program *p, char **str, int mark);
-/*Escape a couple { } when IDCOND is not met*/
-void escape(Program *p);
-
-
-void parse_inc(Program *p);
-void interp_inc (Program *p);
-
-void parse_set_variable(Program *p,char flag);
-void interp_set_var(Program *p,char symbol);
-
-/*check_...function is used to ensure the input is valid
- * if not, report an error*/
-void check_symbol(Program *p, char* symbol);
-void check_strcon(Program *p);
-void check_numcon(Program *p);
-void check_var(Program *p,char flag);
-/*Make sure VAR has been defined*/
-void check_declare(Program *p);
-
-/*Used take off double quota in STRCON*/
-char *take_quota(char *content);
-/*Used to translate ROT to Plain*/
-char *translate_hashes(char *content);
-/*Used to translate getchar() to get a str
- * Used in <INPUT>*/
-void get_str(char **str);
-/*Insert a new key (if it has existed, delete previous one)into map*/
-void insert_map (Program *p, char *str);
-void test();
-
-void Prog(Program *p);
-void Instrs(Program *p);
-void Instruct(Program *p);
-
-bool is_strcon(char *str);
-bool is_numcon(char *str);
-bool is_var(char *str,char flag);
+#include "nal.h"
 
 int main(int argc,char **argv)
 {
     Program p;
-    char *str;
     check_argc(argc);
     init_program(&p);
 
@@ -163,17 +11,14 @@ int main(int argc,char **argv)
     srand((unsigned)time(NULL));
     #endif
     Prog(&p);
-    #ifdef INTERP
-   /* printf("Interpreted OK!\n");*/
-    #else
+    #ifndef INTERP
     printf("Parsed OK!\n");
     #endif
-
-    str= mvm_print(p.map);
-    printf("%s\n",str);
-    free(str);
     free_program(&p);
+#ifdef TEST
     test();
+#endif
+
     return 0;
 }
 void init_program(Program *p)
@@ -255,6 +100,10 @@ void input_in_array(Program *p,char *filename)
         is_setvar(fp,p);
         is_ifcond(fp,p);
         is_file(fp,p);
+#ifdef EXTENT
+        is_rpnope(fp,p);
+        is_swap(fp,p);
+#endif
         p->count++;
         resize_array(p);
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
@@ -262,6 +111,38 @@ void input_in_array(Program *p,char *filename)
     }
     fclose(fp);
 }
+#ifdef EXTENT
+void is_rpnope(FILE *fp, Program *p)
+{
+    if(!strsame(p->array[p->count],"RPNOPE")){
+        return;
+    }
+    p->count++;
+    resize_array(p);
+    read_varcon(fp,p);
+}
+void is_swap(FILE *fp,Program *p)
+{
+    int i;
+    if(!strsame(p->array[p->count],"SWAP")){
+        return;
+    }
+    for(i=ZERO;i<TWO;i++){
+        p->count++;
+        resize_array(p);
+        p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
+        check_allocate(p->array[p->count]);
+        if(fscanf(fp,"%s",p->array[p->count])!=ONE){
+            ERROR_1("Need a closing } to finish file");
+        }
+        p->count++;
+        resize_array(p);
+        read_varcon(fp,p);
+    }
+}
+#endif
+
+
 
 void is_print(FILE *fp,Program *p)
 {
@@ -273,6 +154,8 @@ void is_print(FILE *fp,Program *p)
     read_varcon(fp,p);
 
 }
+
+
 void is_setvar(FILE *fp,Program *p)
 {
     if(p->array[p->count][FIRST]!='$'&&p->array[p->count][FIRST]!='%'){
@@ -293,6 +176,7 @@ void is_setvar(FILE *fp,Program *p)
     resize_array(p);
     read_varcon(fp,p);
 }
+
 void is_ifcond(FILE *fp,Program *p)
 {
     int i;
@@ -444,6 +328,17 @@ void Instruct(Program *p)
         parse_set_variable(p,p->array[p->cw][FIRST]);
         return;
     }
+#ifdef EXTENT
+    if(strsame(p->array[p->cw],"RPNOPE")){
+        parse_rpnope(p);
+        return;
+    }
+    if(strsame(p->array[p->cw],"SWAP")){
+        parse_swap(p);
+        return;
+    }
+
+#endif
 
     ERROR_2("Undefined instruction",p->array[p->cw],p->cw);
 }
@@ -542,16 +437,10 @@ void interp_file(Program *p)
     input_in_array(&p2,filename);
     free(filename);
     Prog(&p2);
-
-
-/*    for(i=0;i<p2.count;i++){
-        printf("%s",p->lt->prog[p->lt->size-OFFSET]->array[i]);
-    }*/
     for(i=0;i<p2.count+OFFSET;i++){
         free(p->lt->prog[p->lt->size-OFFSET]->array[i]);
     }
     free(p2.array);
-    /*free(p->lt->prog[p->lt->size-OFFSET]);*/
     p->lt->size--;
 }
 
@@ -1033,14 +922,140 @@ char *translate_hashes(char *content)
 
 
 
+#ifdef EXTENT
+void parse_rpnope(Program *p)
+{
+    int temp0,temp1,temp2;/*record the index of "{" and "}"*/
+    char mark;
+    p->cw++;
+    check_var(p,'%');
+    temp0 = p->cw;
+    check_symbol(p,"=");
+    check_symbol(p,"[");
+    p->cw++;
+    temp1 = p->cw;
+
+    while((p->cw<p->count) && p->array[p->cw][FIRST] != ']'){
+        mark = p->array[p->cw][FIRST];
+        if(mark =='%'){
+            check_var(p,'%');
+        }else if((mark>='0'&&mark <='9')|| mark =='.'){
+
+            check_numcon(p);
+        }else if (is_operator(mark)==0){
+
+            ERROR_2("Ilegal input in RPNOPE",p->array[p->cw],p->cw);
+        }
+        p->cw++;
+    }
+    if(p->cw >= p->count){
+        ERROR_2("Expect a \"}\" to conclude RPNOPE",\
+        p->array[p->cw],p->cw);
+    }
+    temp2 = --(p->cw);
+    p->cw++;
+#ifdef INTERP
+    interp_rpnope(p,temp0,temp1,temp2);
+#endif
+}
 
 
 
 
+void interp_rpnope(Program *p,int var_location, int start,int finish)
+{
+    int temp = p->cw;
+    p->cw = var_location;
+    compute(p,start,finish);
+    p->cw = temp;
+}
 
 
+void compute(Program *p, int start, int finish)
+{
+    int i;
+    Stack *s;
+    char *str1, *str2;
+    float num1,num2,num3;
+    char *str3[MAXSIZE];
+    for(i=0;i<MAXSIZE;i++){
+        str3[i] = calloc(DEFAULTSIZE*TWO,sizeof(char));
+    }
+    s = init_stack();
+    for(i=start;i<=finish;i++){
+        if(is_operator(p->array[i][FIRST])){
+            pop_stack(s,&str1);
+            pop_stack(s,&str2);
+            num1 = atof(str1);
+            num2 = atof(str2);
+            num3 = operation(p->array[i][FIRST],num1,num2);
+            sprintf(str3[s->top],"%f",num3);
+            push_stack(s,str3[s->top]);
+        }else if (p->array[i][FIRST] == '%'){
+            str1 = mvm_search(p->map,p->array[i]);
+            push_stack(s,str1);
+        }else{
+            push_stack(s,p->array[i]);
+        }
+    }
+    insert_map(p,s->data[s->top-OFFSET]);
+    free(s);
+    for(i=0;i<MAXSIZE;i++){
+        free(str3[i]);
+    }
+}
 
 
+void parse_swap (Program *p)
+{
+    char flag1, flag2;
+    check_symbol(p,"(");
+    p->cw++;
+    flag1 = p->array[p->cw][FIRST];
+    if(flag1 =='%'){
+        check_var(p,'%');
+    }else{
+        check_var(p,'$');
+    }
+    check_symbol(p,",");
+    p->cw++;
+    flag2 = p->array[p->cw][FIRST];
+    if(flag2 =='%'){
+        check_var(p,'%');
+    }else{
+        check_var(p,'$');
+    }
+    check_symbol(p,")");
+    #ifdef INTERP
+    if(flag1 != flag2){
+        ERROR_2("Expect a matched VAR type",p->array[p->cw-THREE],p->cw-THREE);
+    }
+    interp_swap(p);
+    #endif
+}
+void interp_swap(Program *p)
+{
+    int len;
+    char *str,*temp1,*temp2;
+    p->cw = p->cw -THREE;
+
+    check_declare(p);
+    temp1 = mvm_search(p->map,p->array[p->cw]);
+    len = (int)strlen(temp1);
+    str = (char *)calloc(len+OFFSET,sizeof(char));
+    strcpy(str,temp1);
+    mvm_delete(p->map,p->array[p->cw]);
+    p->cw = p->cw + TWO;
+    check_declare(p);
+    temp2 = mvm_search(p->map,p->array[p->cw]);
+    mvm_insert(p->map,p->array[p->cw-TWO],temp2);
+    mvm_delete(p->map,p->array[p->cw]);
+    mvm_insert(p->map,p->array[p->cw],str);
+    free(str);
+    p->cw++;
+}
+
+#endif
 
 
 

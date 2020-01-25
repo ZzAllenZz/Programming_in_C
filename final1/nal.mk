@@ -28,7 +28,7 @@ interp_s : $(BASE).c $(BASE).h mvm.c mvm.h
 interp_d : $(BASE).c $(BASE).h mvm.c mvm.h
 	$(CC) $(BASE).c mvm.c $(DFLAGS) -o $@ -DINTERP
 
-test : testparse testinterp
+test_all : testparse testinterp
 
 testparse : parse_s parse_d
 	./parse_s test1.$(BASE)

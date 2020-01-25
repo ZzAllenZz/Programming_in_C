@@ -1,0 +1,15 @@
+{
+	%A = 12
+	%B = 5
+	RPNOPE %CC = [ %A %B +  10 * ]
+	RPNOPE %EE = [ 15 %CC - %B * ]
+	RPNOPE %D = [ %A %B + 10 * ] 
+	PRINT %D
+	IFGREATER ( %D , 169.999999999999 ) {
+	   PRINT "Hello World! From test1"
+	}
+
+	SWAP ( %A , %B )
+	PRINT %A
+	PRINT %B
+}

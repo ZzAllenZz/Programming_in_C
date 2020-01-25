@@ -1,18 +1,9 @@
-#include<stdio.h>
-#include<stdlib.h>
-
-#define  MAXSIZE 100
-#define FAIL 0
-#define SUCCESS 1
-typedef struct stack{
-    char *data[MAXSIZE];
-    int top;
-} Stack;
-
-
-float operation(char ope, float num1,float num2);
-int is_operation(char ope);
-
+#include "extent.h"
+#define ERROR_1(PHRASE) {\
+fprintf(stderr,"Fatal Error: %s occured in %s, line %d\n",\
+PHRASE,__FILE__,__LINE__);\
+exit(1);\
+}
 Stack* init_stack()
 {
     Stack *s;
@@ -55,9 +46,7 @@ int is_empty(Stack *s)
 
 
 
-
-
-int is_operation(char ope)
+int is_operator(char ope)
 {
     if(ope == '+' || ope == '-'||ope =='*'|| ope == '/'){
         return 1;
