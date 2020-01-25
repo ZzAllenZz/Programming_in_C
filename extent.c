@@ -36,9 +36,6 @@ fprintf(stderr,"%s %s (WORD %d) in %s, line %d\n",\
 EXPLAIN,WORD,NUMBER,__FILE__,__LINE__);\
 exit(2);\
 }
-typedef int bool;
-#define TRUE 1
-#define FALSE 0
 
 typedef struct program{
     char **array;/*Used to store tokens*/
@@ -112,7 +109,7 @@ void interp_ifcondition(Program *p);
  *mark is used to present whether two VARCONs are matched*/
 void is_ifmatched(Program *p, char **str,int *mark);
 /*Used to present whether IFCOND is met*/
-bool is_meet(Program *p, char **str, int mark);
+int is_meet(Program *p, char **str, int mark);
 /*Escape a couple { } when IDCOND is not met*/
 void escape(Program *p);
 
@@ -122,6 +119,13 @@ void interp_inc (Program *p);
 
 void parse_set_variable(Program *p,char flag);
 void interp_set_var(Program *p,char symbol);
+
+void parse_rpnope(Program *p);
+void interp_rpnope(Program *p,int var_location, int start,int finish);
+
+
+
+
 
 /*check_...function is used to ensure the input is valid
  * if not, report an error*/
@@ -141,45 +145,49 @@ char *translate_hashes(char *content);
 void get_str(char **str);
 /*Insert a new key (if it has existed, delete previous one)into map*/
 void insert_map (Program *p, char *str);
-void test();
+
+
+int is_operation(char ope);
+void compute(Program *p, int start, int finish);
+void is_rpnope(FILE *fp, Program *p);
 
 void Prog(Program *p);
 void Instrs(Program *p);
 void Instruct(Program *p);
 
-bool is_strcon(char *str);
-bool is_numcon(char *str);
-bool is_var(char *str,char flag);
-
 int main(int argc,char **argv)
 {
     Program p;
+    int i;
     char *str;
     check_argc(argc);
     init_program(&p);
 
     input_in_array(&p,argv[SECOND]);
+    for(i=0;i<p.count;i++){
+        printf("%s\n",p.array[i]);
+    }
     #ifdef INTERP
     srand((unsigned)time(NULL));
     #endif
     Prog(&p);
     #ifdef INTERP
-   /* printf("Interpreted OK!\n");*/
+    printf("Interpreted OK!\n");
     #else
     printf("Parsed OK!\n");
     #endif
 
-    str= mvm_print(p.map);
+    str = mvm_print(p.map);
     printf("%s\n",str);
     free(str);
     free_program(&p);
-    test();
     return 0;
 }
+
 void init_program(Program *p)
 {
-    p->cw=ZERO;
-    p->count=ZERO;
+    p->cw=0;
+    p->count=0;
 
     /*Initialize the map*/
     p->map = mvm_init();
@@ -209,12 +217,9 @@ void free_program(Program *p)
         free(p->array[i]);
     }
     free(p->array);
-    p->array = NULL;
     mvm_free(&(p->map));
     free(p->lt);
-    p->lt = NULL;
 }
-
 void check_argc(int argc)
 {
     if(argc<REQUIRED){
@@ -224,14 +229,12 @@ void check_argc(int argc)
         ERROR_1("Too many arguments in command line");
     }
 }
-
 void check_allocate(char *str)
 {
     if(str==NULL){
         ERROR_1("Cannot allocate memory");
     }
 }
-
 void resize_array(Program *p)
 {
     p->array = (char **)realloc(p->array,(p->count+OFFSET)*sizeof(char*));
@@ -248,13 +251,15 @@ void input_in_array(Program *p,char *filename)
     }
     while(fscanf(fp,"%s",p->array[p->count])==1){
         if(p->array[p->count][DEFAULTSIZE-OFFSET] != '\0'){
-            ERROR_2("This instruction's length should be less than "
-                    "Default Size (20) : ",p->array[p->count],p->count);
+            ERROR_2("This instruction's length should be less than Default Size (20) : ",\
+            p->array[p->count],p->count);
         }
+
         is_print(fp,p);
         is_setvar(fp,p);
         is_ifcond(fp,p);
         is_file(fp,p);
+        is_rpnope(fp,p);
         p->count++;
         resize_array(p);
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
@@ -262,6 +267,19 @@ void input_in_array(Program *p,char *filename)
     }
     fclose(fp);
 }
+
+void is_rpnope(FILE *fp, Program *p)
+{
+    if(!strsame(p->array[p->count],"RPNOPE")){
+        return;
+    }
+    p->count++;
+    resize_array(p);
+    read_varcon(fp,p);
+}
+
+
+
 
 void is_print(FILE *fp,Program *p)
 {
@@ -278,6 +296,7 @@ void is_setvar(FILE *fp,Program *p)
     if(p->array[p->count][FIRST]!='$'&&p->array[p->count][FIRST]!='%'){
         return;
     }
+
     p->count++;
     resize_array(p);
     p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
@@ -299,12 +318,12 @@ void is_ifcond(FILE *fp,Program *p)
     if(!strsame(p->array[p->count],"IFEQUAL")&&!strsame(p->array[p->count],"IFGREATER")){
         return;
     }
-    for(i=ZERO;i<TWO;i++){
+    for(i=0;i<TWO;i++){
         p->count++;
         resize_array(p);
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
         check_allocate(p->array[p->count]);
-        if(fscanf(fp,"%s",p->array[p->count])!=ONE){
+        if(fscanf(fp,"%s",p->array[p->count])!=1){
             ERROR_1("Need a closing } to finish file");
         }
         p->count++;
@@ -321,30 +340,28 @@ void is_file(FILE *fp, Program *p) /*可以用read_varcon吗,可以，之后再*
     resize_array(p);
     read_varcon(fp,p);
 }
-/*Used to read the VARCON into p->array[p->count];
- * we need to use c=getc(fp) to catch since we need to deal with space ' ' '\n' '\r' '\t'
- * and after the if statement, it will divided into read_var_or_numcon or read_strcon
- * also, we need dynamic size for these.
- * */
 void read_varcon(FILE *fp,Program *p)
 {
-    char c;
+    int c;
     int i = FIRST; /*Used for the index of str*/
     char *str = (char *)calloc(TWO,sizeof(char));
-    check_allocate(str);/*str is used to receive VARCON, dynamic size */
-    /*Discard ' ' '\n''\r''\t'*/
-    while(((c=getc(fp))==' '|| c =='\n'||c == '\t'||c == '\r')&& c != EOF);
+    check_allocate(str);
+
+    while((c=getc(fp))==' '&& c != EOF);
     if(c==EOF){
         ERROR_2("Expect beginning \" or # or % or $ or digit to start VARCON after ",\
         p->array[p->count-OFFSET],p->count-OFFSET);
     }
     str[i++] =c;
+
     if(c == '%' ||c == '$'||(c>='0'&&c<='9')||c == '.'){
         read_var_or_numcon(fp,str,p,i);
-        /*free(str); no need to free, because realloc will free previous one*/
+        /*free(str);*/
+        /*不需要再free str 因为 指针指向的是堆，当read_var_or_num函数中reallocate，原来这块地方已经free了*/
     }else if(c=='#'||c == '\"'){
         read_strcon(fp,str,p,i,c);
     }else{
+
         ERROR_2("Illegal input for VARCON after ",\
         p->array[p->count-OFFSET],p->count-OFFSET);
     }
@@ -352,13 +369,15 @@ void read_varcon(FILE *fp,Program *p)
 void read_var_or_numcon(FILE *fp,char *str,Program *p,int i)
 {
     int c;
-    while((c=getc(fp))!=' '&& c!= '\n'&& c!= '\t'&&c!= '\r'&& c!=EOF){
+    while((c=getc(fp))!=' '&& c!= '\n'&& c!=EOF){
         str = (char *)realloc(str,(strlen(str)+TWO)* sizeof(char));
         check_allocate(str);
         str[i++]=c;
         str[i]='\0';
     }
     p->array[p->count] = str;
+
+
 }
 void read_strcon(FILE *fp,char *str,Program *p,int i,char flag)
 {
@@ -444,6 +463,10 @@ void Instruct(Program *p)
         parse_set_variable(p,p->array[p->cw][FIRST]);
         return;
     }
+    if(strsame(p->array[p->cw],"RPNOPE")){
+        parse_rpnope(p);
+        return;
+    }
 
     ERROR_2("Undefined instruction",p->array[p->cw],p->cw);
 }
@@ -456,69 +479,52 @@ void check_symbol(Program *p, char* symbol)
         exit(2);
     }
 }
-
 void check_strcon(Program *p)
 {
-    if(!is_strcon(p->array[p->cw])){
-        ERROR_2("It is not a STRCON:",p->array[p->cw],p->cw);
+    int len = (int)strlen(p->array[p->cw]);
+    if(p->array[p->cw][FIRST]=='\"'){
+        if(p->array[p->cw][len-OFFSET]!='\"'){
+            ERROR_2("Expect a closing \" to finish STRCON :",p->array[p->cw],p->cw);
+        }
+    }else if(p->array[p->cw][FIRST]=='#'){
+        if(p->array[p->cw][len-OFFSET]!='#'){
+            ERROR_2("Expect a closing # to finish STRCON :",p->array[p->cw],p->cw);
+        }
+    }else{
+        ERROR_2("Expect a beginning \" or # to start STRCON :",p->array[p->cw],p->cw);
     }
 }
-bool is_strcon(char *str)
-{
-    int len = (int)strlen(str);
-    if(str[FIRST]!= '\"'&& str[FIRST]!= '#'){
-        return FALSE;
-    }
-    if(str[FIRST]!=str[len-OFFSET]){
-        return FALSE;
-    }
-    return TRUE;
-}
-
 void check_numcon(Program *p)
 {
-    if(!is_numcon(p->array[p->cw])){
-        ERROR_2("It is not a NUMCON:",p->array[p->cw],p->cw);
-    }
-}
-
-bool is_numcon(char *str)
-{
-    int i,flag = 0,len = (int)strlen(str);
+    int len = (int)strlen(p->array[p->cw]);
+    int i;
+    int flag = 0;
     for(i=0;i<len;i++){
-        if((str[i]<'0'||str[i]>'9')&&str[i]!='.'){
-            return FALSE;
+        if((p->array[p->cw][i]<'0'||p->array[p->cw][i]>'9')&&p->array[p->cw][i]!='.'){
+            ERROR_2("Expect only digit or . in NUMCON",p->array[p->cw],p->cw);
         }
-        if(str[i] =='.'){
+        if(p->array[p->cw][i] =='.'){
             flag++;
         }
         if(flag>1){
-            return FALSE;
+            ERROR_2("No more than 1 dot in NUMCON",p->array[p->cw],p->cw);
         }
     }
-    return TRUE;;
 }
-
 void check_var(Program *p,char flag)
 {
-    if(!is_var(p->array[p->cw],flag)){
-        ERROR_2("It is an illegal VAR:",p->array[p->cw],p->cw);
-    }
-}
-bool is_var(char *str,char flag)
-{
-    int len = (int)strlen(str);
+    int len = (int)strlen(p->array[p->cw]);
     int i;
-    if(str[FIRST] != flag){
-        return FALSE;
+    if(p->array[p->cw][FIRST] != flag){
+        ERROR_2("Expect a matched \"%\" or \"$\" to start VAR",p->array[p->cw],p->cw);
     }
     for(i=1;i<len;i++){
-        if(str[i]<'A'||str[i]>'Z'){
-            return FALSE;
+        if(p->array[p->cw][i]<'A'||p->array[p->cw][i]>'Z'){
+            ERROR_2("Expect only [A-Z]+ in VAR",p->array[p->cw],p->cw);
         }
     }
-    return TRUE;
 }
+
 void parse_file(Program *p)
 {
     p->cw++;
@@ -567,6 +573,7 @@ void interp_abort(Program *p)
     }
     mvm_free(&(p->map));
     free(p->lt);
+    printf("Interpreted OK\n");
     exit(0);
 }
 
@@ -841,14 +848,14 @@ void is_ifmatched(Program *p, char **str,int *mark)
     p->cw = p->cw - TWO;
 }
 
-bool is_meet(Program *p, char **str, int mark)
+int is_meet(Program *p, char **str, int mark)
 {
-    int success = FALSE;
+    int success = ZERO;
     float num1,num2;
     if(strsame(str[ZERO],"IFEQUAL") && mark == 0){
         num1 = atof(str[ONE]);
         num2 = atof(str[TWO]);
-        success = (fabs((double)(num1-num2))<=0.0005);
+        success = (fabs((double)(num1-num2))<=0.000005);
     }else if (strsame(str[ZERO],"IFEQUAL") && mark == 2){
         success = strsame(str[ONE],str[TWO]);
     }else if (strsame(str[ZERO],"IFGREATER") && mark == 0){
@@ -862,24 +869,16 @@ bool is_meet(Program *p, char **str, int mark)
     return success;
 }
 
-void escape(Program *p)
+void escape(Program *p) /*不能嵌套判断,改名为escape逃跑*/
 {
-    int flag = ONE;
-    p->cw++;
-    while((p->cw < p->count) && flag != ZERO){
-        if(strsame(p->array[p->cw],"{")){
-            flag++;
-        }
-        if(strsame(p->array[p->cw],"}")){
-            flag--;
-        }
+    while((p->cw < p->count) && !strsame(p->array[p->cw],"}")){
         p->cw++;
     }
+
     if(p->cw >= p->count){
         ERROR_2("Expect a \"}\" to conclude IFCOND",\
         p->array[p->cw],p->cw);
     }
-    p->cw--;
 }
 
 
@@ -973,8 +972,7 @@ void check_declare (Program *p)
    char *str;
    str = mvm_search(p->map,p->array[p->cw]);
    if(str == NULL){
-        ERROR_2("Please define variable before using :",\
-        p->array[p->cw],p->cw);
+        ERROR_2("Please define variable before using :",p->array[p->cw],p->cw);
     }
 }
 
@@ -1035,8 +1033,50 @@ char *translate_hashes(char *content)
 
 
 
+void parse_rpnope(Program *p)
+{
+    int temp0,temp1,temp2;/*record the index of "{" and "}"*/
+    char mark;
+    p->cw++;
+    check_var(p,'%');
+    temp0 = p->cw;
+    check_symbol(p,"=");
+    check_symbol(p,"{");
+    p->cw++;
+    temp1 = p->cw;
 
+    while((p->cw<p->count) && p->array[p->cw][FIRST] != '}'){
+        mark = p->array[p->cw][FIRST];
+        if(mark =='%'){
+            check_var(p,'%');
+        }else if((mark>='0'&&mark <='9')|| mark =='.'){
 
+            check_numcon(p);
+        }else if (is_operation(mark)==0){
+
+            ERROR_2("Ilegal input in RPNOPE",p->array[p->cw],p->cw);
+        }
+        p->cw++;
+    }
+
+    if(p->cw >= p->count){
+        ERROR_2("Expect a \"}\" to conclude RPNOPE",\
+        p->array[p->cw],p->cw);
+    }
+    temp2 = --(p->cw);
+    p->cw++;
+#ifdef INTERP
+    interp_rpnope(p,temp0,temp1,temp2);
+#endif
+
+}
+void interp_rpnope(Program *p,int var_location, int start,int finish)
+{
+    int temp = p->cw;
+    p->cw = var_location;
+    compute(p,start,finish);
+    p->cw = temp;
+}
 
 
 

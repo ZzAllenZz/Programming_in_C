@@ -8,7 +8,7 @@ EXECS = $(TESTBASE) $(TESTBASE)_d $(TESTBASE)_s
 CC = clang
 
 run: $(TESTBASE)
-	./$(TESTBASE) test3.nal
+	./$(TESTBASE) test2.nal
 
 all: $(EXECS)
 
@@ -26,7 +26,7 @@ clean:
 
 memleaks: $(TESTBASE)_d $(TESTBASE)_s
 	@echo "Sanitize :"
-	@./$(TESTBASE)_s test3.nal
+	@./$(TESTBASE)_s test2.nal
 	@echo "Valgrind :"
-	@valgrind --leak-check=full ./$(TESTBASE)_d test3.nal
+	@valgrind --leak-check=full ./$(TESTBASE)_d test2.nal
 

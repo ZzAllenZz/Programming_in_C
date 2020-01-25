@@ -1,0 +1,4 @@
+{
+	IN2STR ( $A , $B )
+	INNUM ( %A )
+}

@@ -1,8 +1,10 @@
 #include "nal.h"
 #include <assert.h>
 
-/*In order to test every line of code, I write a test-function for each function,
- * and deploy the required environment before test each function*/
+/*In order to test every line of code, I write a test-function for almost each function;
+ * and deploy the required environment before test each functions;
+ * For some untestable functions like interp_print (print out something)
+ * and interp_in2str(scanf from keyboards), I have test them in .nal file;*/
 void test_init_and_free_program();
 void test_check_argc();
 void test_resize_array();
@@ -12,10 +14,13 @@ void test_input_in_array();
 void test_parse_print();
 void test_parse_and_interp_file();
 void test_parse_and_interp_jump();
+void test_rnd_and_inc();
+void test_set_and_ifcond();
+void test_in2str_and_innum();
+void test_function_with_return_value();
+
 void test()
 {
-
-/*    Program p;*/
     check_argc(2);
     test_init_and_free_program();
     test_check_argc();
@@ -26,41 +31,86 @@ void test()
     test_parse_print();
     test_parse_and_interp_file();
     test_parse_and_interp_jump();
-/*    init_program(&p);
-    assert(p.cw == 0);
-    assert(p.count == 0);
-    assert(p.map != NULL);
-    assert(p.array != NULL);
-    assert(p.array[0] != NULL);
-    assert(p.lt != NULL);
-    assert(p.lt->size == ONE);
-    input_in_array(&p,"print.test");
-    assert(p.count == 19 );
-    assert(strcmp(p.array[p.cw++],"{")==0);
-    assert(strcmp(p.array[p.cw++],"$A")==0);
-    assert(strcmp(p.array[p.cw++],"=")==0);
-    assert(strcmp(p.array[p.cw++],"\"COOL\"")==0);
-    assert(strcmp(p.array[p.cw++],"$B")==0);
-    assert(strcmp(p.array[p.cw++],"=")==0);
-    assert(strcmp(p.array[p.cw++],"#PBBY#")==0);
-    assert(strcmp(p.array[p.cw++],"%B")==0);
-    assert(strcmp(p.array[p.cw++],"=")==0);
-    assert(strcmp(p.array[p.cw++],"12")==0);
-    assert(strcmp(p.array[p.cw++],"PRINT")==0);
-    assert(strcmp(p.array[p.cw++],"\"Hello\"")==0);
-    assert(strcmp(p.array[p.cw++],"PRINTN")==0);
-    assert(strcmp(p.array[p.cw++],"#Uv#")==0);
-    assert(strcmp(p.array[p.cw++],"PRINT")==0);
-    assert(strcmp(p.array[p.cw++],"$A")==0);
-    assert(strcmp(p.array[p.cw++],"PRINTN")==0);
-    assert(strcmp(p.array[p.cw++],"%B")==0);
-    assert(strcmp(p.array[p.cw++],"}")==0);
-    p.cw = 0;
-
-    free_program(&p);*/
-/*    p.array[0] =*/
-
+    test_rnd_and_inc();
+    test_set_and_ifcond();
+    test_in2str_and_innum();
+    test_function_with_return_value();
 }
+
+void test_function_with_return_value()
+{
+    char *str;
+    int i;
+
+    assert(is_strcon("hello") == FALSE);
+    assert(is_strcon("\"hello\"") == TRUE);
+    assert(is_strcon("\"hello#") == FALSE);
+    assert(is_strcon("#hello\"") == FALSE);
+    assert(is_strcon("#hello#") == TRUE);
+    assert(is_strcon("#hello 123 word#") == TRUE);
+
+
+    assert(is_numcon(".a123") == FALSE);
+    assert(is_numcon(".123") == TRUE);
+    assert(is_numcon("1.23.4") == FALSE);
+
+
+    assert(is_var("%ABC",'%') == TRUE);
+    assert(is_var("$ABC",'%') == FALSE);
+    assert(is_var("%aBC",'%') == FALSE);
+    assert(is_var("%ABC12",'%') == FALSE);
+    assert(is_var("ABC",'%') == FALSE);
+
+
+    assert(is_var("$ABC",'$') == TRUE);
+    assert(is_var("$abc",'$') == FALSE);
+    assert(is_var("$ABC123",'$') == FALSE);
+    assert(is_var("%ABC",'$') == FALSE);
+    assert(is_var("ABC",'$') == FALSE);
+
+
+
+    str = translate_hashes("#nopqrstuvwxyzabcdefghijklm#");
+    i = strsame(str,"\"abcdefghijklmnopqrstuvwxyz\"");
+    assert(i);
+    free(str);
+
+    str = translate_hashes("#NOPQRSTUVWXYZABCDEFGHIJKLM#");
+    i = strsame(str,"\"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"");
+    assert(i);
+    free(str);
+
+    str = translate_hashes("#5678901234#");
+    i = strsame(str,"\"0123456789\"");
+    assert(i);
+    free(str);
+
+    str = take_quota("\"hello world\"");
+    i = strsame(str,"hello world");
+    assert(i);
+    free(str);
+
+    str = take_quota("#nopqr#");
+    i = strsame(str,"abcde");
+    assert(i);
+    free(str);
+
+    str = take_quota("#IJKLM#");
+    i = strsame(str,"VWXYZ");
+    assert(i);
+    free(str);
+
+    str = take_quota("123456");
+    i = strsame(str,"123456");
+    assert(i);
+    free(str);
+
+    str = take_quota("#123#");
+    i = strsame(str,"678");
+    assert(i);
+    free(str);
+}
+
 /*Test init_program and free_program*/
 void test_init_and_free_program()
 {
@@ -97,6 +147,7 @@ void test_check_argc()
 void test_resize_array()
 {
     Program p;
+    int i;
     init_program(&p);
     p.count = ONE;
     resize_array(&p);
@@ -105,7 +156,8 @@ void test_resize_array()
      * */
     p.array[p.count] = "HELLO WORLD";
     assert(p.array[p.count]!=NULL);
-    assert(strsame(p.array[p.count],"HELLO WORLD"));
+    i = strsame(p.array[p.count],"HELLO WORLD");
+    assert(i);
     /*in order to use function:free_program*/
     p.array[p.count] =(char *)calloc(DEFAULTSIZE, sizeof(char));
 
@@ -353,7 +405,7 @@ void test_parse_print()
     Program p;
     int i;
     init_program(&p);
-    input_in_array(&p,"parse_print.testf");
+    input_in_array(&p,"PRINT.testf");
     p.cw = ONE;
     parse_print(&p);
     assert(p.cw==TWO);
@@ -377,6 +429,7 @@ void test_parse_print()
     i = is_var(p.array[p.cw],'%');
     assert(i);
     assert(p.cw==14);
+
     free_program(&p);
 }
 
@@ -384,9 +437,8 @@ void test_parse_and_interp_file()
 {
     Program p;
     int i;
-    char *str;
     init_program(&p);
-    input_in_array(&p,"parse_file.testf");
+    input_in_array(&p,"FILE+JUMP.testf");
 
     p.cw = ONE;
     parse_file(&p);
@@ -396,27 +448,16 @@ void test_parse_and_interp_file()
 
     /*test function of interp_file */
     interp_file(&p);
+    /*actually,because we do not # define INTERP,
+     * the sub-file is just act like a parser*/
     assert(p.cw==2);
 
     p.cw = THREE;
-    parse_print(&p);
+    parse_file(&p);
     i = is_strcon(p.array[p.cw]);
     assert(i);
     assert(p.cw==4);
 
-    str = translate_hashes("#nopqrstuvwxyzabcdefghijklm#");
-    i = strsame(str,"\"abcdefghijklmnopqrstuvwxyz\"");
-    assert(i);
-    free(str);
-    str = translate_hashes("#NOPQRSTUVWXYZABCDEFGHIJKLM#");
-    i = strsame(str,"\"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"");
-    assert(i);
-    free(str);
-    str = translate_hashes("#5678901234#");
-    i = strsame(str,"\"0123456789\"");
-    assert(i);
-
-    free(str);
     free_program(&p);
 }
 
@@ -425,7 +466,7 @@ void test_parse_and_interp_jump()
     Program p;
     int i;
     init_program(&p);
-    input_in_array(&p,"parse_file.testf");
+    input_in_array(&p,"FILE+JUMP.testf");
     p.cw = 5;
     parse_jump(&p);
     assert(p.cw==6);
@@ -435,17 +476,110 @@ void test_parse_and_interp_jump()
     p.cw = 6;
     interp_jump(&p);
     /*JUMP 2 make p.cw = 1
-     * because p.cw will +1 before it goes into next Instruct;
-     * */
+     * because p.cw will +1 before it goes into next Instruct;*/
     assert(p.cw==1);
 
     free_program(&p);
 }
 
-
-void test_function_with_return_value()
+void test_rnd_and_inc()
 {
+    Program p;
+    int i,number1,number2;
+    char *str;
+    init_program(&p);
+    input_in_array(&p,"RND+INC.testf");
+    /*test parser and interpreter of RND*/
+    p.cw = ONE;
+    parse_rnd(&p);
+    assert(p.cw==4);
+    interp_rnd(&p);
 
+    str = mvm_search(p.map,p.array[THREE]);
+    assert(str != NULL);
+    number1 = atoi(str);
+    i = (number1>=0 &&number1<=99);
+    assert(i);
+
+    /*test parser and interpreter of INC*/
+    p.cw = 5;
+    parse_inc(&p);
+    assert(p.cw==8);
+    interp_inc(&p);
+
+    str = mvm_search(p.map,p.array[THREE]);
+    assert(str != NULL);
+    number2 = atoi(str);
+    i = (number2 == number1+1);
+    assert(i);
+
+    free_program(&p);
 }
+
+
+void test_set_and_ifcond()
+{
+    Program p;
+    int i,mark = 0,success;
+    char *str;
+    char *temp[THREE];
+    init_program(&p);
+    input_in_array(&p,"SET+IF.testf");
+
+    p.cw = ONE;
+    parse_set_variable(&p,'%');
+    assert(p.cw == 3);
+    interp_set_var(&p,'1');
+    str = mvm_search(p.map,p.array[ONE]);
+    assert(str != NULL);
+    i = (strsame(str,p.array[p.cw]));
+    assert(i);
+
+    p.cw = 4;
+    parse_set_variable(&p,'%');
+    assert(p.cw == 6);
+    interp_set_var(&p,'1');
+    str = mvm_search(p.map,p.array[4]);
+    assert(str != NULL);
+    i = (strsame(str,p.array[p.cw]));
+    assert(i);
+
+
+    p.cw = 7;
+    parse_ifcondition(&p);
+    assert(p.cw == 17);
+    /*Test sub-function in interp_ifcond*/
+    p.cw = 7;
+    temp[ZERO] = p.array[p.cw];
+    p.cw = p.cw + TWO;
+    is_ifmatched(&p,temp,&mark);
+    assert(mark != 2);
+    success = is_meet(&p,temp,mark);
+    assert(success==0);
+
+    /*Test interp_ifcond*/
+    p.cw = 12;
+    interp_ifcondition(&p);
+    assert(p.cw == 17 );
+
+    free_program(&p);
+}
+
+void test_in2str_and_innum()
+{
+    Program p;
+    init_program(&p);
+    input_in_array(&p,"INPUT.testf");
+
+    p.cw = ONE;
+    parse_in2str(&p);
+    assert(p.cw == 6);
+    p.cw = 7;
+    parse_innum(&p);
+    assert(p.cw == 10);
+
+    free_program(&p);
+}
+
 
 

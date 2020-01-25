@@ -29,6 +29,8 @@ ERROR_2 is a kind of error that can track the information about Program
 e.g. Expect a closing # to finish STRCON...
 
 
+.testf is just used for test function.
+
 
 
 
