@@ -716,7 +716,6 @@ void teststack()
     int i,j;
     char *str;
     float num;
-    char ope;
     char animals[5][10] = {"cat",  "dog",  "bird",  "horse", "frog"};
 
     assert(is_operator('+'));
