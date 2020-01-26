@@ -1,0 +1,21 @@
+
+Two interesting extensions have been done
+
+RPNOPE
+% An arithmetic operation in reverse polish notion
+% RPNOPE %A = [ %B 12.35 + %C / ]
+% which means %A = (%B+12.35)/%C in Infix notion
+% <RPNOPE>:="RPNOPE" NUMVAR "=" "{" NUMVAR|NUMCON|"+"|"-"|"*"|"/" "}"
+1. In parser, as along as it meets the grammar, it will parsed ok~
+   Do not care about whether this reverse polish notion is an valid one
+2. In interpreter, we will check whether this notion is valid and meanwhile compute result
+
+SWAP
+% Swap the content of two VARs with same type
+% SWAP ( %A , %B ) or SWAP ( $A , $B )
+% <SWAP>:="SWAP" "(" VAR "," VAR " ")"
+% e.g. %A = 1 %B = 2 -> SWAP ( %A , %B ) -> %A = 2 %B = 1
+1. In parser, as along as it meets the grammar, it will parsed ok~
+   Do not care about whether type of two VARs is matched
+2. In interpreter, we will check whether type of two VARs is matched
+   and exchange the content of them.

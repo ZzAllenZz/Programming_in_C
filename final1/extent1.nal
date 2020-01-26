@@ -4,9 +4,10 @@
 	RPNOPE %CC = [ %A %B + 10 * ]
 	RPNOPE %EE = [ 15 %CC - %B * ]
 	RPNOPE %D = [ %A %B + 10 * ] 
+	PRINTN "%D = "
 	PRINT %D
-	IFGREATER ( %D , 169.999999999999 ) {
-	   PRINT "Hello World! From test1"
+	IFGREATER ( %D , 168.5 ) {
+	   PRINT "GREAT REVERSE POLISH NOTION"
 	}
 
 

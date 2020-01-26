@@ -1,0 +1,53 @@
+{
+
+	FILE test1.nal
+	FILE "test1.nal#
+	FILE #test1.nal
+	FILE "test1.nal
+	FILE $A
+
+
+	IN2STR ( %A , $B )
+	IN2STR ( $$A ,$a )
+	INNUM ( $A )
+	INNUM ( %a )
+
+
+	JUMP 5..1
+	JUMP %A
+	
+	
+	PRINT #hello word"
+	PRINT "hello word
+	PRINTN hello word
+	PRINTN %%A
+	PRINTN $a
+	
+	
+	RND ( %abc )
+	RND ( $A )
+	RND ( 12.12 )
+	
+	
+	
+	INC ( %abc )
+	INC ( $A )
+	INC ( 12.12 )
+	
+	
+	%a = %A
+	$A = "hello word
+	%A = 12...12	
+	
+	IFEQUAL ( %a , #hello# ) {
+		PRINT $A
+	}
+	
+	IFGREATER ( $A , #hello ) {
+		PRINT $A
+	}
+	
+	IFEQUAL ( %A , #hello# ) {
+		DOOF
+	}
+}

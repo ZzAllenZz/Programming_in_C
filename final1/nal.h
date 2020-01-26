@@ -11,7 +11,7 @@
 
 #define LIST_SIZE 256 /*Max number of Programs that can conduct simultaneously  */
 #define DEFAULTSIZE  20 /*Default size of array[p->cw]*/
-
+#define GAP 0.00005
 #define REQUIRED 2 /*Required arguments in command line*/
 #define OFFSET 1 /*One location offset*/
 
@@ -71,6 +71,7 @@ void resize_array(Program *p);
 /*Read in tokens from file to p->array */
 void input_in_array(Program *p,char *filename);
 /*is_... functions exist mainly because we need to deal with space ' ' in VARCON */
+void check_special_case(FILE *fp,Program *p);
 /*Deal with when token is "PRINT" OR "PRINTN" */
 void is_print(FILE *fp,Program *p);
 /*Deal with when token is to SET VAR*/

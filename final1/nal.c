@@ -12,12 +12,14 @@ int main(int argc,char **argv)
     #endif
     Prog(&p);
     #ifndef INTERP
+    #ifndef TEST
     printf("Parsed OK!\n");
     #endif
+    #endif
     free_program(&p);
-#ifdef TEST
+    #ifdef TEST
     test();
-#endif
+    #endif
 
     return 0;
 }
@@ -96,14 +98,7 @@ void input_in_array(Program *p,char *filename)
             ERROR_2("This instruction's length should be less than "
                     "Default Size (20) : ",p->array[p->count],p->count);
         }
-        is_print(fp,p);
-        is_setvar(fp,p);
-        is_ifcond(fp,p);
-        is_file(fp,p);
-#ifdef EXTENT
-        is_rpnope(fp,p);
-        is_swap(fp,p);
-#endif
+        check_special_case(fp,p);
         p->count++;
         resize_array(p);
         p->array[p->count] = (char *)calloc(DEFAULTSIZE, sizeof(char));
@@ -111,6 +106,29 @@ void input_in_array(Program *p,char *filename)
     }
     fclose(fp);
 }
+void check_special_case(FILE *fp,Program *p)
+{
+    if(strsame(p->array[p->count],"PRINT")\
+    || strsame(p->array[p->count],"PRINTN")){
+        is_print(fp,p);
+    }else if (p->array[p->count][FIRST]=='$'\
+    ||p->array[p->count][FIRST]=='%'){
+        is_setvar(fp,p);
+    }else if (strsame(p->array[p->count],"IFEQUAL")\
+    ||strsame(p->array[p->count],"IFGREATER")){
+        is_ifcond(fp,p);
+    }else if (strsame(p->array[p->count],"FILE")){
+        is_file(fp,p);
+    }
+#ifdef EXTENT
+    else if (strsame(p->array[p->count],"RPNOPE")){
+        is_rpnope(fp,p);
+    }else if (strsame(p->array[p->count],"SWAP")){
+        is_swap(fp,p);
+    }
+#endif
+}
+
 #ifdef EXTENT
 void is_rpnope(FILE *fp, Program *p)
 {
@@ -196,7 +214,7 @@ void is_ifcond(FILE *fp,Program *p)
         read_varcon(fp,p);
     }
 }
-void is_file(FILE *fp, Program *p) /*可以用read_varcon吗,可以，之后再*/
+void is_file(FILE *fp, Program *p)
 {
     if(!strsame(p->array[p->count],"FILE")){
         return;
@@ -476,7 +494,7 @@ void parse_in2str(Program *p)
     #endif
 }
 
-void interp_in2str(Program *p)/*怎么改成动态的*/
+void interp_in2str(Program *p)
 {
     /*i is used to control the round, total round = 2;*/
     int i;
@@ -536,12 +554,14 @@ void interp_innum(Program *p)
     len = (int) strlen(str);
     for(i=ZERO;i<len;i++){
         if((str[i]<'0'||str[i]>'9')&&str[i]!='.'){
+            free(str);
             ERROR_2("Expect only digit or . in NUM",p->array[p->cw],p->cw);
         }
         if(str[i] =='.'){
             flag++;
         }
         if(flag>1){
+            free(str);
             ERROR_2("No more than 1 dot in NUM",p->array[p->cw],p->cw);
         }
     }
@@ -621,7 +641,7 @@ void interp_print(Program *p)
         free(str); /*Because take_quota will allocate a memory for str*/
     }
 }
-void parse_rnd(Program *p)/*和parse_innum 一样*/
+void parse_rnd(Program *p)
 {
     check_symbol(p,"(");
     p->cw++;
@@ -740,13 +760,13 @@ bool is_meet(Program *p, char **str, int mark)
     if(strsame(str[ZERO],"IFEQUAL") && mark == 0){
         num1 = atof(str[ONE]);
         num2 = atof(str[TWO]);
-        success = (fabs((double)(num1-num2))<=0.0005);
+        success = (fabs((double)(num1-num2))<=GAP);
     }else if (strsame(str[ZERO],"IFEQUAL") && mark == 2){
         success = strsame(str[ONE],str[TWO]);
     }else if (strsame(str[ZERO],"IFGREATER") && mark == 0){
         num1 = atof(str[ONE]);
         num2 = atof(str[TWO]);
-        success = (fabs((double)(num1-num2))>0.0005 && num1 > num2);
+        success = (fabs((double)(num1-num2))>GAP && num1 > num2);
     }else if (strsame(str[ZERO],"IFGREATER") && mark == 2){
         ERROR_2("Cannot compare str in IFGREATER",\
         p->array[p->cw],p->cw);

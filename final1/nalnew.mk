@@ -30,13 +30,14 @@ interp_s : $(BASE).c $(BASE).h mvm.c mvm.h
 interp_d : $(BASE).c $(BASE).h mvm.c mvm.h
 	$(CC) $(BASE).c mvm.c $(DFLAGS) -o $@ -DINTERP
 
-#This is for the third part to run my test function in test.c
-test_function : $(BASE).c $(BASE).h mvm.c mvm.h
-	$(CC) $(BASE).c mvm.c test.c $(CFLAGS) -o $@ -DTEST -DEXTENT
-test_function_s : $(BASE).c $(BASE).h mvm.c mvm.h
-	$(CC) $(BASE).c mvm.c test.c $(SFLAGS) -o $@ -DTEST -DEXTENT
-test_function_d : $(BASE).c $(BASE).h mvm.c mvm.h
-	$(CC) $(BASE).c mvm.c test.c $(DFLAGS) -o $@ -DTEST -DEXTENT
+#This is the third part to run my test function in test.c
+#For all of parser, interpreter and extent
+test_function : $(BASE).c $(BASE).h mvm.c mvm.h extent.c extent.h
+	$(CC) $(BASE).c mvm.c extent.c test.c $(CFLAGS) -o $@ -DTEST -DEXTENT
+test_function_s : $(BASE).c $(BASE).h mvm.c mvm.h extent.c extent.h
+	$(CC) $(BASE).c mvm.c extent.c test.c $(SFLAGS) -o $@ -DTEST -DEXTENT
+test_function_d : $(BASE).c $(BASE).h mvm.c mvm.h extent.c extent.h
+	$(CC) $(BASE).c mvm.c extent.c test.c $(DFLAGS) -o $@ -DTEST -DEXTENT
 
 #This is parsing for the fourth part to run my extent code in extent.c
 extent_parse : $(BASE).c $(BASE).h mvm.c mvm.h extent.c extent.h
@@ -82,10 +83,11 @@ testinterp : interp_s interp_d
 	valgrind ./interp_d test4.$(BASE)
 	valgrind ./interp_d test5.$(BASE)
 
-#This is for the third part to run my test function in test.c
+#This is the third part to run my test function in test.c
+#For all of parser, interpreter and extent
 testfunction : test_function_s test_function_d
-	./parse_s test1.$(BASE)
-	valgrind ./parse_d test1.$(BASE)
+	./test_function_s test1.$(BASE)
+	valgrind ./test_function_d test1.$(BASE)
 
 #This is parsing for the fourth part to run my extent code in extent.c
 testparse_extent : extent_parse_s extent_parse_d
