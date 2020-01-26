@@ -1,3 +1,112 @@
+
+
+
+
+
+
+
+How to test :
+The code has been tested by mainly two ways.
+
+1.Used .nal file to test successful case and failed cases by reporting ERROR_1 and ERROR_2 (#defined);
+2.In order to test every lines of code, I write a test-function for almost each function in test.c,
+  and deploy the required environment before testing each function;
+  For some untestable functions like interp_print (print out something),
+  interp_in2str(scanf from keyboard),and interp_abort (contains exit(0)), I have tested them in .nal file;
+
+Problems and Solutions
+I think the code can be mainly divided into three parts.
+PART ONE : Read the file and fill tokens into p.array[p.count](one of my structure);
+PART TWO : Parse these tokens
+PRAT THREE : Interpret these tokens
+PART THREE and PART TWO are tightly connected;
+The whole code works just as a finite state machine;
+
+Problem1 : We do not know how many instructions .nal file will have.
+Solution1 : I have written a function resize() to dynamically allocate p.array (type: char**);
+            every time before reading in a new token, its size will plus 1;
+            It will avoid waste memory.
+
+
+Problem2 : When we read in a VARCON, it may contain some spaces like "Hello Word"
+           and also we do not know how long it will be.
+           We cannot simply allocate an fixed-size memory and use fscanf();
+Solution2 : For the instructions like PRINT, JUMP and so on,
+            we can simply allocate an fixed-size memory (default size :20*sizeof(char))and use fscanf();
+            For the VARCON (include NUMVAR, STRVAR, NUMCON, STRCON),
+            we used getc() to read in and deal with ' 'etc, and used dynamic-size string to store them.
+            every time we execute one more getc(), the size of string will plus 1.
+            So, in my code, the size of VARCON can be as long as you like.
+            Note： STRCON can contain space, but NUMVAR, STRVAR, NUMCON cannot.
+
+Problem3 : When we interpret "ABORT", it will do something and exit(0).
+            if we "ABORT" in sub-sub-...-sub .nal file, we have many struct programs existed and need be freed
+            before exit(0).
+            So how can we know how many struct programs we have and how to free them?
+            How to track them? and also how to make sure they share symbol table (mvm *map)?
+
+            for example, we have p1 in 1.nal and 1.nal will open file of 2.nal (we need p2),
+            2.nal will open file of 3.nal (we need p3), and in 3.nal, we will do "ABORT".
+            In this case, we need to free struct program p1,p2,and p3.
+
+
+Solution3 : I write a structure of List, which is nested in structure of Program, shown as below.
+            I used prog[LIST_SIZE] to store and track Programs created.
+            every Program p, it has independent array, count, cw.
+            But all existed Program p, p.lt and p.map point to some location in memory.
+            in the above example, p1.map, p2.map, p3.map point to same place,
+            p1.lt, p2.lt, p3.lt point to same place.
+            In this case, no matter how many Programs we have (actually it should be less than default LIST_SIZE = 256),
+            we can easily track every existed Programs by calling p.lt.
+            and easily insert, search, delete global variable by calling p.map;
+            You can try this by ./interp ABORT1.nal. it will open ABORT2.nal and then ABORT3.nal, and then "ABORT"
+
+typedef struct program{
+    char **array;/*Used to store tokens*/
+    mvm *map;/*Used to store VAR*/
+    int count;/*Total tokens read in*/
+    int cw;/*Current word to index token in recursion*/
+    struct list *lt;
+    /*A structure of List used to record how many Programs created*/
+} Program;
+
+typedef struct list{
+    Program *prog[LIST_SIZE]; /*An array of pointer of Program */
+    int size;
+} List;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Structure Property
 2 structure are created.
 1. Program

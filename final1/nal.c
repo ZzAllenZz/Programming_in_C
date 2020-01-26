@@ -433,6 +433,9 @@ void interp_file(Program *p)
     p2.map = p->map;
     p2.lt = p->lt;
     p->lt->size++;
+    if(p->lt->size>= LIST_SIZE){
+        ERROR_1("Expect less than 256 Programs existed at same time");
+    }
     p->lt->prog[p->lt->size-OFFSET] = &p2;
     input_in_array(&p2,filename);
     free(filename);
