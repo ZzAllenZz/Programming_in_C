@@ -1,0 +1,8 @@
+{
+	PRINT #ABCD#
+	PRINTN "ABCD"
+	$A = "hello world"
+	PRINT $A
+	%A = 12.12
+	PRINT %A	
+}

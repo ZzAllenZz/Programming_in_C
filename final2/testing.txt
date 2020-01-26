@@ -1,0 +1,216 @@
+How to test :
+The code has been tested by mainly two ways.
+
+1.Used .nal file to test successful case and failed cases by reporting ERROR_1 and ERROR_2 (#defined);
+  all the parser-failed cases are collected in parsefailedcases.nal
+  all the interpreter-failed cases are collected in interpretfailedcases.nal
+  These are to tell people what will fail.
+  If you want to try, delete all other content, only leave the instruction you want to execude,
+  and then It will report why they are wrong.
+
+2.In order to test every lines of code, I write a test-function for almost each function in test.c,
+  and deploy the required environment before testing each function;
+  For some untestable functions like interp_print (print out something),
+  interp_in2str(scanf from keyboard),and interp_abort (contains exit(0)), I have tested them in .nal file;
+  you can check details in test.c and execute them by make -f nal.mk testfunction
+  Note: .testf file is just specially used for testing function in test.c.
+
+Problems and Solutions
+I think the code can be mainly divided into three parts.
+PART ONE : Read the file and fill tokens into p.array[p.count](one of my structure);
+PART TWO : Parse these tokens
+PRAT THREE : Interpret these tokens
+PART THREE and PART TWO are tightly connected;
+The whole code works just as a finite state machine;
+
+The following are the problems I faced and solutions I gave;
+So problem-solving model can improve me and give me some attainment and experience;
+
+Problem1 :  We do not know how many instructions .nal file will have.
+Solution1 : I have written a function resize() to dynamically allocate p.array (type: char**);
+            every time before reading in a new token, its size will plus 1;
+            It will avoid waste memory.
+
+
+Problem2 :  When we read in a VARCON, it may contain some spaces like "Hello Word"
+            and also we do not know how long it will be.
+            We cannot simply allocate an fixed-size memory and use fscanf();
+Solution2 : For the instructions like PRINT, JUMP and so on,
+            we can simply allocate an fixed-size memory (default size :20*sizeof(char))and use fscanf();
+            For the VARCON (include NUMVAR, STRVAR, NUMCON, STRCON),
+            we used getc() to read in and deal with ' 'etc, and used dynamic-size string to store them.
+            every time we execute one more getc(), the size of string will plus 1.
+            So, in my code, the size of VARCON can be as long as you like.
+            Note： STRCON can contain space, but NUMVAR, STRVAR, NUMCON cannot.
+
+Problem3 :  When we interpret "ABORT", it will do something and exit(0).
+            if we "ABORT" in sub-sub-...-sub .nal file, we have many struct programs existed and need be freed
+            before exit(0).
+            So how can we know how many struct programs we have and how to free them?
+            How to track them? and also how to make sure they share symbol table (mvm *map)?
+
+            for example, we have p1 in 1.nal and 1.nal will open file of 2.nal (we need p2),
+            2.nal will open file of 3.nal (we need p3), and in 3.nal, we will do "ABORT".
+            In this case, we need to free struct program p1,p2,and p3.
+
+
+Solution3 : I write a structure of List, which is nested in structure of Program, shown as below.
+            I used prog[LIST_SIZE] to store and track Programs created.
+            every Program p, it has independent array, count, cw.
+            But all existed Program p, p.lt and p.map point to some location in memory.
+            in the above example, p1.map, p2.map, p3.map point to same place,
+            p1.lt, p2.lt, p3.lt point to same place.
+            In this case, no matter how many Programs we have (actually it should be less than default LIST_SIZE = 256),
+            we can easily track every existed Programs by calling p.lt.
+            and easily insert, search, delete global variable by calling p.map;
+            You can try this by valgrind ./interp_d ABORT1.nal. to check memory leaks
+            it will open ABORT2.nal and then ABORT3.nal, and then "ABORT"
+
+typedef struct program{
+    char **array;/*Used to store tokens*/
+    mvm *map;/*Used to store VAR*/
+    int count;/*Total tokens read in*/
+    int cw;/*Current word to index token in recursion*/
+    struct list *lt;
+    /*A structure of List used to record how many Programs created*/
+} Program;
+
+typedef struct list{
+    Program *prog[LIST_SIZE]; /*An array of pointer of Program */
+    int size;
+} List;
+
+Problem4  : The difference between Linux and Windows.
+            I used wls in windows and edit my testXXX.nal files
+            However, they are not consistent.
+            When i edit my .nal file in Linux and type ENTER, it has \n
+            When i edit my .nal file in Windows and type ENTER, it has \r\n
+            Such inconsistency confused me a lot at beginning
+            and I cannot read in file successfully.
+
+Solution4 : After I know there are some inconsistencies.
+            I change my code to consider both \n and \r, and even \t to solve this problem
+
+
+Problem5 :  How to escape from nested IFCOND.
+            If we simply search for closing '}', we may find a closing '}', which belongs to nested IFCOND
+            So, the Program cannot run as we expect.
+
+Solution5 : In interpreter, when p.array[p.cw] points to '{', we set flag = 1,
+            and when escaping, every time p.array[p.cw] points to '{', flag++;
+            and every time p.array[p.cw] points to '}', flag--;
+            So, only when  p.array[p.cw] points to '}' and flag = 0, it can escape.
+            in other words, flag == 0 means '{' and '}' are matched.
+
+Structure Property
+2 structure are created.
+1. Program
+(1)count:total tokens read in
+(2)cw: current word to index token in recursion
+(3)array:used to store tokens
+(4)map: used to store VAR
+(5)lt:a structure nested in Program
+2.List
+This structure is used to record the Programs and how many of these
+(1)prog: an array of pointer that points to Program
+(2)size: used to record how many Programs.
+Why we need List:
+1. we need this structure mainly because when we abort the whole programe,
+we need to free all allocated location. However, if we abort the whole program in a sub-file,
+we need to track the Programes previously created to make no memory leaks.
+(e.g. interpret "test1.nal" firstly, and then in "test1.nal", we execute FILE "test2.nal" ,
+and then in "test2.nal", we execute FILE "test3.nal", and then in "test3.nal", we execute ABORT.
+In this case, before we interpret ABORT by exit(0), we need to free all the allocated memories.
+In order to track program1, program2, program3 to separately free them,
+we need to use this nested structure, named List.
+In other words, this nested structure is similar to create a global variable, aka,Programs.
+
+
+
+ERROR_1 is a kind of error that cannot or need not to report the information about Program
+e.g. Failed to allocate memory, cannot open a file...
+ERROR_2 is a kind of error that can track the information about Program
+e.g. Expect a closing # to finish STRCON...
+
+
+
+Interpretation for each Instructions (how i deal with them)
+
+FILE
+1.In parser, as long as it followed by a STRCON, it will be parsed ok;
+  Do not care about whether we can open this file;
+2.in interpreter, a new Program p2 is generated,
+  and p2.map = p->map;
+      p2.lt = p->lt;
+  after its execution, p2 will be freed
+
+ABORT
+1.In parser, do nothing
+2.in interpreter, we use nested structure of List to track existed Program,
+  and free them separately and then exit(0);
+
+JUMP
+1.In parser, as long as it followed by a NUMCON, it will be parsed ok;
+2.in interpreter, this NUMCON must be integer and smaller than p->count
+  if it is not (e.g. JUMP 5.2), it will get a ERROR.
+
+PRINT or PRINTN
+1.in parser, as long as it followed by a VARCON, it will be parsed ok;
+  do not care about whether the var is declared;
+2.in interpreter, if it is a var, it must be defined before print;
+
+RND
+1.in parser, as long as it followed by a NUMVAR, it will be parsed ok;
+2.in interpreter, if NUMVAR is declared, delete current data,
+  and insert a new one (generated by rand());
+
+
+IFCOND
+1.in parser, as long as it followed by two VARCON, it will be parsed ok;
+  do not care about whether the VAR is declared.
+  do not care about whether two VARCONs are matched.
+2.in interpreter, two VARCONs must be matched.
+  STRVAR <-> STRCON
+  NUMVAR <-> NUMCON
+  For IFEQUAL, both string and number are valid
+  For IFGREATER, only number is valid. if it is string, it will report an error
+  (No meaning for comparing two string which one is greater);
+3.When comparing two float number, we define num1 and num2 are some if (num1-num2))<=0.00005
+INC
+1.in parser, as long as it followed by a NUMVAR, it will be parsed ok;
+  do not care about whether the VAR is declared.
+2.in interpreter, the NUMVAR must be defined before ++.
+
+
+IN2STR INNUM
+in interpreter
+1.Used getchar() to get input to allow dynamic allocation
+2.All of them are stored in map as string.
+  But INNUM will be checked whether input is an valid number.
+
+SET
+1.in parser, as long as it is a VAR and a VARCON;
+  do not care about whether VAR and VARCON are matched.
+2.in interpreter, the type must be matched.
+  in other words, STRVAR = STRVAR || STRVAR = STRCON ||NUMVAR = NUMVAR||NUMVAR = NUMCON
+  And also, if R-value is var, it must be declared before used.
+
+EXTENSION:
+RPNOPE
+% An arithmetic operation in reverse polish notion
+% RPNOPE %A = [ %B 12.35 + %C / ]
+% which means %A = (%B+12.35)/%C in Infix notion
+% <RPNOPE>:="RPNOPE" NUMVAR "=" "{" NUMVAR|NUMCON|"+"|"-"|"*"|"/" "}"
+1. In parser, as along as it meets the grammar, it will parsed ok~
+   Do not care about whether this reverse polish notion is an valid one
+2. In interpreter, we will check whether this notion is valid and meanwhile compute result
+
+SWAP
+% Swap the content of two VARs with same type
+% SWAP ( %A , %B ) or SWAP ( $A , $B )
+% <SWAP>:="SWAP" "(" VAR "," VAR " ")"
+% e.g. %A = 1 %B = 2 -> SWAP ( %A , %B ) -> %A = 2 %B = 1
+1. In parser, as along as it meets the grammar, it will parsed ok~
+   Do not care about whether type of two VARs is matched
+2. In interpreter, we will check whether type of two VARs is matched
+   and exchange the content of them.

@@ -1,0 +1,5 @@
+{
+	$A = "IN FILE ABORT1.nal"
+	PRINT $A
+	FILE "ABORT2.nal"
+}

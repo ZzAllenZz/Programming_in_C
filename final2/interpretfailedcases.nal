@@ -1,0 +1,36 @@
+{
+
+	FILE "test999.nal"
+	FILE #test1.nal#
+
+	JUMP 5.1
+
+	PRINT $A
+	PRINT %A
+	
+	INC ( %A )
+
+	
+	%B = %A
+	$B = $A
+	
+	$A = "ABC"
+	%A = 123
+	
+	IFEQUAL ( $A , %A ) {
+		PRINT $A
+	}
+		
+	IFEQUAL ( %A , 123 ) {
+		DOOF
+	}
+	IFGREATER ( $A , "hello" ) {
+		PRINT $A
+	}
+	
+	%B = $B
+	$A = %A
+
+	INC ( %D )
+	
+}

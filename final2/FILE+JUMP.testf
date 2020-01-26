@@ -1,0 +1,5 @@
+{
+	FILE "PRINT.testf"
+	FILE #TEST . TEST#
+	JUMP 2
+}

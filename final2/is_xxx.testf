@@ -1,0 +1,14 @@
+ABC
+PRINT #D E F#
+
+abc
+$A = "Hello C"
+%A = 100.100
+
+QQQ
+FILE "is xxx . testf"
+
+IFFF
+IFEQUAL ( $A , #Hello C# ) {
+
+}
