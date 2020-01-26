@@ -7,8 +7,8 @@ DFLAGS = -Wall -Wextra -pedantic -ansi -g3 -lm
 CC = clang
 BASE = nal
 BEXECS = parse interp test_function extent_parse extent_interp
-SEXECS = parse_s interp_s test_function_s extent_parse extent_interp_d
-DEXECS = parse_d interp_d test_function_d extent_parse extent_interp_d
+SEXECS = parse_s interp_s test_function_s extent_parse_s extent_interp_s
+DEXECS = parse_d interp_d test_function_d extent_parse_d extent_interp_d
 EXECS = $(BEXECS) $(SEXECS) $(DEXECS)
 
 all : $(BEXECS)
